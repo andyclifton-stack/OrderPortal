@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            background: #f8f9fa;
+        }
+
+        /* --- SKELETON LOADER --- */
+        .skeleton-screen {
+            display: block;
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+            position: relative;
+            z-index: 10;
+        }
+
+        .skeleton-box {
+            background: #e0e0e0;
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .skeleton-box::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            transform: translateX(-100%);
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            100% {
+                transform: translateX(100%);
+            }
+        }
+
+        /* Skeleton Layout Helpers */
+        .sk-header {
+            height: 40px;
+            margin-bottom: 20px;
+            width: 30%;
+        }
+
+        .sk-card {
+            height: 120px;
+            width: 100%;
+        }
+
+        .sk-filter {
+            height: 50px;
+            margin-bottom: 20px;
+        }
+
+        .sk-table-row {
+            height: 40px;
+            margin-bottom: 10px;
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body class="p-4">
+    <!-- SKELETON SCREEN -->
+    <div id="skeletonScreen" class="skeleton-screen" style="display: block;">
+        <div class="d-flex justify-content-between align-items-end mb-4">
+            <div class="skeleton-box sk-header"></div>
+            <div class="skeleton-box" style="width: 150px; height: 30px;"></div>
+        </div>
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="skeleton-box sk-card"></div>
+            </div>
+            <div class="col-md-4">
+                <div class="skeleton-box sk-card"></div>
+            </div>
+            <div class="col-md-4">
+                <div class="skeleton-box sk-card"></div>
+            </div>
+        </div>
+        <div class="skeleton-box sk-filter mb-4"></div>
+        <div class="skeleton-box sk-table-row"></div>
+        <div class="skeleton-box sk-table-row"></div>
+        <div class="skeleton-box sk-table-row"></div>
+    </div>
+
+    <!-- OVERLAY (Simulating transparent load state) -->
+    <div id="overlay"
+        style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; backdrop-filter: blur(2px);">
+        <div id="spinner" class="text-center bg-white p-4 rounded shadow">
+            <div class="spinner-border text-primary mb-3" role="status"></div>
+            <h6 class="fw-bold text-muted" id="loadingText">LOADING...</h6>
+        </div>
+    </div>
+</body>
+
+</html>

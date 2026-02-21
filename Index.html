@@ -1,0 +1,2305 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+   <base target="_top">
+   <script>
+      // LOCAL DEV: Load mock environment if not running in Apps Script
+      if (typeof google === 'undefined') {
+         document.write('<script src="local-mock.js"><\/script>');
+      }
+   </script>
+   <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+   <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+
+   <style>
+      /* --- CSS VARIABLES --- */
+      :root {
+         --brand-blue: #283583;
+         --brand-yellow: #FAB600;
+
+         /* Light Mode Defaults */
+         --bg-body: #f4f6f9;
+         --bg-card: #ffffff;
+         --text-main: #333333;
+         --text-muted: #6c757d;
+         --border-color: #dee2e6;
+         --input-bg: #ffffff;
+         --input-group-bg: #f8f9fa;
+         --header-bg: #f8f9fa;
+         --hover-bg: #f1f1f1;
+
+         /* Dynamic Colors */
+         --link-blue: #283583;
+         --badge-bg: #ffffff;
+         --badge-text: #212529;
+      }
+
+      /* Dark Mode Overrides */
+      [data-theme="dark"] {
+         --bg-body: #121212;
+         --bg-card: #1e1e1e;
+         --text-main: #e0e0e0;
+         --text-muted: #adb5bd;
+         --border-color: #444444;
+         --input-bg: #2d2d2d;
+         --input-group-bg: #2d2d2d;
+         --header-bg: #2c2c2c;
+         --hover-bg: #333333;
+
+         /* Dynamic Colors Dark */
+         --link-blue: #6ea8fe;
+         --badge-bg: #2c2c2c;
+         --badge-text: #ffffff;
+      }
+
+      /* Mobile Header Tools Positioning */
+      @media (max-width: 768px) {
+         #mobileHeaderTools {
+            position: absolute !important;
+            top: 10px !important;
+            right: 15px !important;
+            left: auto !important;
+            margin-top: 0 !important;
+            width: auto !important;
+            z-index: 1050;
+         }
+
+         .brand-header {
+            position: relative !important;
+            padding-right: 40px;
+         }
+      }
+
+      /* --- SKELETON LOADER --- */
+      .skeleton-screen {
+         position: fixed;
+         top: 0;
+         left: 0;
+         width: 100%;
+         height: 100%;
+         z-index: 10002;
+         background: var(--bg-body);
+         padding: 2rem;
+         overflow: hidden;
+      }
+
+      .skeleton-box {
+         background: #e0e0e0;
+         border-radius: 4px;
+         position: relative;
+         overflow: hidden;
+      }
+
+      .skeleton-box::after {
+         content: "";
+         position: absolute;
+         top: 0;
+         right: 0;
+         bottom: 0;
+         left: 0;
+         transform: translateX(-100%);
+         background-image: linear-gradient(90deg, rgba(255, 255, 255, 0) 0, rgba(255, 255, 255, 0.2) 20%, rgba(255, 255, 255, 0.5) 60%, rgba(255, 255, 255, 0));
+         animation: shimmer 2s infinite;
+      }
+
+      [data-theme="dark"] .skeleton-box {
+         background: #2d2d2d;
+      }
+
+      [data-theme="dark"] .skeleton-box::after {
+         background-image: linear-gradient(90deg, rgba(255, 255, 255, 0) 0, rgba(255, 255, 255, 0.05) 20%, rgba(255, 255, 255, 0.1) 60%, rgba(255, 255, 255, 0));
+      }
+
+      @keyframes shimmer {
+         100% {
+            transform: translateX(100%);
+         }
+      }
+
+      .sk-header {
+         height: 60px;
+         width: 300px;
+         margin-bottom: 30px;
+      }
+
+      .sk-card {
+         height: 120px;
+         width: 100%;
+         margin-bottom: 20px;
+         border-radius: 8px;
+      }
+
+      .sk-filter {
+         height: 50px;
+         width: 100%;
+         margin-bottom: 20px;
+      }
+
+      .sk-table-row {
+         height: 40px;
+         width: 100%;
+         margin-bottom: 10px;
+      }
+
+      /* Force Transparent Overlay during Initial Load */
+      /* Must be above Skeleton (10002) */
+      #overlay.initial-load {
+         background: rgba(255, 255, 255, 0.1) !important;
+         backdrop-filter: none !important;
+         z-index: 10005 !important;
+      }
+
+      /* Remove White Box during Initial Load so we only see text floating over Skeleton */
+      #overlay.initial-load #spinner {
+         background: transparent !important;
+         box-shadow: none !important;
+      }
+
+      #overlay.initial-load .spinner-border {
+         display: none !important;
+      }
+
+      /* Pure Text Mode (Initial Load) */
+      #overlay.initial-load #loadingText {
+         font-size: 1.3rem;
+         /* Reduced from 1.75rem */
+         font-weight: 600;
+         color: #ffffff !important;
+         background: rgba(40, 53, 131, 0.95);
+         /* Slightly more opaque */
+         padding: 10px 30px;
+         /* Reduced padding */
+         border-radius: 50px;
+         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+         /* Softer shadow */
+         letter-spacing: 0.5px;
+      }
+
+      /* Processing Mode (Simulation/Transitions) - Dimmed + Blur, No Box */
+      #overlay.processing-state {
+         background: rgba(0, 0, 0, 0.6) !important;
+         backdrop-filter: blur(4px) !important;
+      }
+
+      #overlay.processing-state #spinner {
+         background: transparent !important;
+         box-shadow: none !important;
+      }
+
+      #overlay.processing-state #loadingText {
+         color: #ffffff !important;
+         font-size: 1.2rem;
+         margin-top: 15px;
+      }
+
+      #overlay.processing-state .spinner-border {
+         width: 3rem;
+         height: 3rem;
+         color: #ffffff !important;
+      }
+
+      /* --- GLOBAL STYLES --- */
+      body {
+         background-color: var(--bg-body);
+         font-family: 'Open Sans', sans-serif;
+         color: var(--text-main);
+         padding-bottom: 100px !important;
+         transition: background 0.3s, color 0.3s;
+      }
+
+      /* Element Theming */
+      .card,
+      .budget-box,
+      .modal-content,
+      .pagination-bar,
+      .search-toolbar,
+      .list-group-item,
+      .card-header {
+         background-color: var(--bg-card) !important;
+         color: var(--text-main) !important;
+         border-color: var(--border-color) !important;
+      }
+
+      /* Input Fields */
+      input,
+      select,
+      textarea {
+         background-color: var(--input-bg) !important;
+         color: var(--text-main) !important;
+         border-color: var(--border-color) !important;
+      }
+
+      /* Input Group Labels */
+      .input-group-text {
+         background-color: var(--input-group-bg);
+         color: var(--text-muted);
+         border-color: var(--border-color);
+      }
+
+      /* Fix placeholder text in dark mode */
+      [data-theme="dark"] ::placeholder {
+         color: #6c757d;
+         opacity: 1;
+      }
+
+      /* Focus states */
+      input:focus,
+      select:focus,
+      textarea:focus {
+         border-color: var(--link-blue) !important;
+         box-shadow: 0 0 0 0.25rem rgba(40, 53, 131, 0.25);
+      }
+
+      /* --- TABLE DARK MODE FIXES --- */
+      [data-theme="dark"] .table {
+         --bs-table-bg: var(--bg-card);
+         --bs-table-color: var(--text-main);
+         --bs-table-border-color: var(--border-color);
+      }
+
+      /* CONFIRMED COMPACT VIEW */
+      .table>tbody>tr>td,
+      .table>thead>tr>th {
+         padding: 0.25rem 0.5rem !important;
+         vertical-align: middle;
+      }
+
+      /* Force buttons and placeholders to separate height constraints */
+      .btn-action-icon,
+      .placeholder-icon {
+         width: 28px !important;
+         height: 28px !important;
+         font-size: 0.9rem !important;
+      }
+
+      .btn-action-manage,
+      .placeholder-manage {
+         height: 28px !important;
+         line-height: 26px !important;
+         /* Vertically center text */
+         font-size: 0.75rem !important;
+         padding: 0 !important;
+      }
+
+      .badge {
+         padding: 0.35em 0.65em !important;
+      }
+
+      [data-theme="dark"] .table thead th {
+         background-color: var(--header-bg);
+         color: var(--text-main);
+         border-bottom: 2px solid var(--border-color);
+      }
+
+      [data-theme="dark"] .table tbody td {
+         background-color: var(--bg-card);
+         color: var(--text-main);
+         border-bottom: 1px solid var(--border-color);
+      }
+
+      [data-theme="dark"] .table-hover tbody tr:hover td {
+         background-color: var(--hover-bg);
+      }
+
+      /* --- TAB FIXES --- */
+      .nav-tabs .nav-link {
+         color: var(--text-muted);
+      }
+
+      .nav-tabs .nav-link.active {
+         font-weight: bold;
+         background-color: var(--bg-card);
+         border-color: var(--border-color) var(--border-color) var(--bg-card);
+         color: var(--link-blue);
+      }
+
+      [data-theme="dark"] .nav-tabs .nav-link.active {
+         color: #fff;
+      }
+
+      .nav-tabs {
+         border-bottom: 1px solid var(--border-color);
+      }
+
+      /* --- SEARCH TOOLBAR (CONDENSED) --- */
+      .search-toolbar {
+         border-bottom: 1px solid var(--border-color);
+         padding: 10px;
+         /* Reduced from 20px */
+         margin-bottom: 8px;
+         /* Reduced from 15px */
+      }
+
+      /* --- GLOBAL DENSITY REDUCTION --- */
+      html,
+      body {
+         font-size: 14px;
+      }
+
+      /* Standard for dashboards is often 14px */
+
+      /* --- HEADER COMPACTION --- */
+      .brand-header {
+         margin-bottom: 0.5rem !important;
+      }
+
+      .brand-title {
+         font-size: 1.5rem !important;
+         margin: 0 !important;
+      }
+
+      /* Only apply padding reduction if the body has p-4, but keep bottom padding for footer */
+      body.p-4 {
+         padding: 1rem 1rem 100px 1rem !important;
+      }
+
+      .budget-box,
+      .card {
+         padding: 1rem !important;
+         /* Force tighter padding on cards/boxes */
+      }
+
+      /* Make inputs smaller in toolbar */
+      /* Make inputs smaller in toolbar */
+      .form-control,
+      .form-select,
+      .btn {
+         padding: 0.25rem 0.5rem;
+         font-size: 0.875rem;
+         min-height: 32px;
+      }
+
+      /* Fix Select Arrow Overlap */
+      .form-select {
+         padding-right: 2rem !important;
+         /* Ensure space for chevron */
+         background-position: right 0.5rem center;
+      }
+
+      /* Tighten up the row margins in the dashboard if any */
+      .row.gy-4 {
+         --bs-gutter-y: 1rem !important;
+      }
+
+      /* --- BUTTON VISIBILITY FIXES --- */
+      /* Manage Button: Invert colors in dark mode */
+      [data-theme="dark"] .btn-outline-dark {
+         color: #e0e0e0;
+         border-color: #666;
+      }
+
+      [data-theme="dark"] .btn-outline-dark:hover {
+         background-color: #e0e0e0;
+         color: #000;
+      }
+
+      /* Pagination Buttons */
+      [data-theme="dark"] .btn-outline-secondary {
+         color: #adb5bd;
+         border-color: #666;
+      }
+
+      [data-theme="dark"] .btn-outline-secondary:hover {
+         background-color: #666;
+         color: #fff;
+      }
+
+      /* --- SPECIFIC HELPERS --- */
+      .bg-light {
+         background-color: var(--header-bg) !important;
+      }
+
+      .text-muted {
+         color: var(--text-muted) !important;
+      }
+
+      /* Alerts - Dim them in dark mode */
+      [data-theme="dark"] .alert-warning {
+         background-color: #332701;
+         color: #ffda6a;
+         border-color: #664d03;
+      }
+
+      [data-theme="dark"] .alert-danger {
+         background-color: #2c0b0e;
+         color: #ea868f;
+         border-color: #842029;
+      }
+
+      /* Brand Header */
+      .brand-header {
+         border-bottom: 4px solid var(--brand-yellow);
+         padding-bottom: 15px;
+         margin-bottom: 25px;
+      }
+
+      .brand-title {
+         color: var(--brand-blue);
+         font-weight: 700;
+         text-transform: uppercase;
+      }
+
+      [data-theme="dark"] .brand-title {
+         color: #8da2fb;
+      }
+
+      /* Budget Box */
+      .budget-box {
+         border-left: 6px solid var(--brand-yellow);
+         padding: 20px;
+         border-radius: 4px;
+         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+         height: 100%;
+         display: flex;
+         flex-direction: column;
+         justify-content: center;
+         background-color: var(--bg-card);
+      }
+
+      .budget-val {
+         color: var(--brand-blue);
+         font-weight: 800;
+         font-size: 2rem;
+         line-height: 1;
+         margin-top: auto;
+      }
+
+      [data-theme="dark"] .budget-val {
+         color: #fff;
+      }
+
+      .progress {
+         height: 10px;
+         margin-top: 15px;
+         background-color: var(--border-color);
+         border-radius: 5px;
+      }
+
+      /* Toggle Button */
+      .theme-icon {
+         cursor: pointer;
+         padding: 5px;
+         font-size: 1.2rem;
+         transition: color 0.3s;
+         margin-right: 10px;
+         color: var(--text-muted);
+      }
+
+      .theme-icon:hover {
+         color: var(--text-main);
+      }
+
+      /* User Badge */
+      .user-badge {
+         background-color: var(--badge-bg);
+         color: var(--badge-text);
+         border: 1px solid var(--border-color);
+      }
+
+      /* Badges & Buttons */
+      .badge-ordered {
+         background-color: #198754;
+         color: white;
+      }
+
+      .badge-pending {
+         background-color: var(--brand-yellow);
+         color: #000;
+      }
+
+      .btn-note {
+         border: none;
+         background: none;
+         color: var(--text-muted);
+         transition: color 0.2s;
+      }
+
+      .btn-note:hover {
+         color: var(--link-blue);
+      }
+
+      [data-theme="dark"] .btn-note:hover {
+         color: #fff;
+      }
+
+      .btn-note.has-notes {
+         color: #0dcaf0;
+      }
+
+      /* Over Budget Row - Custom Styling for Contrast */
+      .row-over-budget {
+         background-color: #fff5f5 !important;
+         /* Very light red */
+         border-left: 4px solid #dc3545 !important;
+      }
+
+      [data-theme="dark"] .row-over-budget {
+         background-color: rgba(220, 53, 69, 0.1) !important;
+         /* Transparent red */
+         border-left: 4px solid #ea868f !important;
+         /* Lighter red border for dark mode */
+      }
+
+      /* Ensure text remains standard color in dark mode */
+      [data-theme="dark"] .row-over-budget td {
+         color: var(--text-main) !important;
+      }
+
+      /* Hover state compatibility - slight darken of the red tint */
+      .table-hover tbody tr.row-over-budget:hover td {
+         background-color: rgba(220, 53, 69, 0.15) !important;
+         color: var(--text-main) !important;
+      }
+
+      /* Footer */
+      .app-footer {
+         position: fixed;
+         bottom: 0;
+         left: 0;
+         width: 100%;
+         background-color: #343a40;
+         border-top: 3px solid var(--brand-yellow);
+         color: #e9ecef;
+         padding: 12px 0;
+         z-index: 1000;
+         font-size: 0.75rem;
+         display: flex;
+         justify-content: center;
+         align-items: center;
+         box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      /* Action Buttons */
+      .btn-action-icon {
+         width: 32px;
+         height: 32px;
+         font-size: 1rem;
+         padding: 0;
+         display: inline-flex;
+         align-items: center;
+         justify-content: center;
+      }
+
+      .action-cell {
+         display: flex;
+         justify-content: flex-start;
+         align-items: center;
+         gap: 4px;
+      }
+
+      /* Alignment Fixes */
+      .btn-action-manage {
+         width: 80px;
+         padding-left: 0;
+         padding-right: 0;
+      }
+
+      .placeholder-manage {
+         width: 80px;
+         height: 31px;
+      }
+
+      .placeholder-icon {
+         width: 32px;
+         height: 32px;
+      }
+
+      @media (max-width: 768px) {
+         .table thead {
+            display: none;
+         }
+
+         .table tr {
+            display: block;
+            margin-bottom: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+         }
+
+         .table td {
+            display: flex;
+            justify-content: space-between;
+            border: none;
+            padding: 5px 0;
+         }
+
+         .table td::before {
+            content: attr(data-label);
+            font-weight: bold;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            padding-right: 15px;
+            /* Added gap */
+         }
+
+         .action-cell {
+            justify-content: space-between;
+            width: 100%;
+            margin-top: 10px;
+            border-top: 1px solid var(--border-color);
+            padding-top: 10px;
+         }
+
+         /* --- NEW MOBILE UI FIXES --- */
+
+         /* 1. Header Fixes */
+         /* Allow header to wrap naturally */
+         .brand-header {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 10px;
+         }
+
+         /* The container for icons + username */
+         .brand-header>div:last-child {
+            width: 100%;
+            justify-content: space-between;
+            /* Spread them out or align better */
+            margin-top: 5px;
+         }
+
+         /* Ensure username wraps if really long */
+         #userDisplay {
+            white-space: normal;
+            text-align: right;
+            max-width: 200px;
+            word-break: break-all;
+         }
+
+         /* 2. Budget Overview / Admin Controls Fixes */
+         #filterCard .card {
+            /* Switch to flex column to stack items */
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            justify-content: flex-start !important;
+            gap: 10px;
+            padding-top: 15px !important;
+            padding-bottom: 15px !important;
+         }
+
+         /* Select Box Container - Center it or let it stretch */
+         #filterCard .card>div:first-child {
+            width: 100%;
+            justify-content: center;
+            margin-bottom: 5px;
+         }
+
+         /* Reset absolute positioning for the links */
+         #filterCard .position-absolute {
+            position: static !important;
+            text-align: center !important;
+            margin: 0 !important;
+            width: 100%;
+         }
+
+         #deptFilter {
+            width: 100% !important;
+            /* Make dropdown full width for easier tapping */
+         }
+
+         /* 3. Tab Navigation Fixes */
+         .nav-tabs {
+            flex-wrap: wrap;
+            /* Ensure they wrap if needed */
+            justify-content: center;
+            /* Center them */
+         }
+
+         .nav-tabs .nav-link {
+            padding: 10px 15px !important;
+            /* Reduce padding */
+            font-size: 0.9rem;
+            /* Slightly smaller text */
+            flex-grow: 1;
+            /* Make tabs grow to fill rounded space */
+            text-align: center;
+         }
+
+         /* Adjust card header to allow more space if needed */
+         .card-header {
+            height: auto !important;
+         }
+      }
+
+      /* --- TOOLTIP STYLE --- */
+      .custom-tooltip {
+         position: fixed;
+         z-index: 10000;
+         background: rgba(33, 37, 41, 0.95);
+         color: #fff;
+         padding: 6px 12px;
+         border-radius: 6px;
+         font-size: 0.85rem;
+         pointer-events: none;
+         display: none;
+         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+         font-weight: 500;
+         border: 1px solid rgba(255, 255, 255, 0.1);
+         transform: translate(-50%, -130%);
+         /* Center above cursor */
+         white-space: nowrap;
+      }
+   </style>
+</head>
+
+<body class="p-4">
+
+   <!-- SKELETON SCREEN (Hidden by default, shown via inline style for initial load) -->
+   <div id="skeletonScreen" class="skeleton-screen" style="display: none;">
+      <div style="max-width: 1400px; margin: 0 auto; width: 100%;">
+         <div class="d-flex justify-content-between align-items-end mb-4">
+            <div class="skeleton-box sk-header"></div>
+            <div class="skeleton-box" style="width: 150px; height: 30px;"></div>
+         </div>
+         <!-- Budget Cards Skeleton -->
+         <div class="row g-3 mb-4">
+            <div class="col-md-4">
+               <div class="skeleton-box sk-card"></div>
+            </div>
+            <div class="col-md-4">
+               <div class="skeleton-box sk-card"></div>
+            </div>
+            <div class="col-md-4">
+               <div class="skeleton-box sk-card"></div>
+            </div>
+         </div>
+         <!-- Filter Bar Skeleton -->
+         <div class="skeleton-box sk-filter mb-4"></div>
+         <!-- Table Skeleton -->
+         <div class="skeleton-box sk-table-row"></div>
+         <div class="skeleton-box sk-table-row"></div>
+         <div class="skeleton-box sk-table-row"></div>
+         <div class="skeleton-box sk-table-row"></div>
+         <div class="skeleton-box sk-table-row"></div>
+         <div class="skeleton-box sk-table-row"></div>
+         <div class="skeleton-box sk-table-row"></div>
+      </div>
+   </div>
+
+   <div id="overlay"
+      style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; backdrop-filter: blur(2px);">
+      <div id="spinner" class="text-center bg-white p-4 rounded shadow">
+         <div class="spinner-border text-primary mb-3" role="status"></div>
+         <h6 class="fw-bold text-muted" id="loadingText">LOADING...</h6>
+      </div>
+      <div id="errorBox" class="bg-white p-4 rounded shadow"
+         style="color: #dc3545; display: none; text-align: center; max-width: 400px;">
+         <i class="bi bi-exclamation-octagon" style="font-size: 3rem;"></i>
+         <h4 class="mt-3">Connection Error</h4>
+         <p id="errorMsg">Unknown</p>
+         <button class="btn btn-outline-danger mt-2" onclick="location.reload()">Reload</button>
+      </div>
+   </div>
+
+   <div class="container-fluid" id="mainApp" style="display:none; max-width: 1400px;">
+
+      <div class="d-flex justify-content-between align-items-end brand-header">
+         <div>
+            <h3 class="brand-title m-0">Claremont School</h3><small class="text-muted">Purchasing Portal</small>
+         </div>
+         <!-- Added header-tools class -->
+         <div class="d-flex align-items-center header-tools" id="mobileHeaderTools">
+            <!-- Hide email globally -->
+            <span class="badge user-badge me-3 d-none" id="userDisplay">...</span>
+
+            <!-- Admin Dropdown -->
+            <div class="dropdown" id="settingsDropdown" style="display:none;">
+               <button class="btn btn-link text-muted p-0" data-bs-toggle="dropdown">
+                  <i class="bi bi-gear-fill" style="font-size: 1.2rem;"></i>
+               </button>
+               <ul class="dropdown-menu dropdown-menu-end shadow">
+                  <li>
+                     <h6 class="dropdown-header">Actions</h6>
+                  </li>
+                  <li><a class="dropdown-item" id="ddExport" href="javascript:void(0)" onclick="exportMasterReport()"><i
+                           class="bi bi-file-earmark-excel me-2"></i>Export Full Report</a></li>
+                  <li><a class="dropdown-item" id="ddSheet"
+                        href="https://docs.google.com/spreadsheets/d/1nUhtnywmnibXPmQNBM78aYVf03BHj3trw-pIHe3ZO34/edit"
+                        target="_blank"><i class="bi bi-table me-2"></i>Open Master Sheet</a></li>
+                  <li><a class="dropdown-item" href="<?= appUrl ?>?page=dashboard" target="_top"><i
+                           class="bi bi-speedometer2 me-2"></i>Finance Dashboard</a></li>
+                  <li>
+                     <hr class="dropdown-divider">
+                  </li>
+                  <li><a class="dropdown-item" id="ddSimulate" href="javascript:void(0)" onclick="openSimulation()"><i
+                           class="bi bi-eye me-2"></i>Simulate View...</a>
+                  </li>
+                  <li><a class="dropdown-item" href="javascript:void(0)" onclick="toggleTheme()"><i
+                           class="bi bi-moon-stars me-2"></i>Toggle Theme</a></li>
+               </ul>
+            </div>
+
+            <!-- Standard User Theme Toggle -->
+            <button class="btn btn-link text-muted p-0" id="directThemeToggle" onclick="toggleTheme()"
+               style="display:none;" title="Toggle Theme">
+               <i class="bi bi-moon-stars-fill" id="directThemeIcon" style="font-size: 1.2rem;"></i>
+            </button>
+         </div>
+      </div>
+
+      <div id="simBanner"
+         style="background-color: #fd7e14; color: white; padding: 10px 20px; margin-bottom: 20px; border-radius: 6px; display: none; align-items: center; justify-content: space-between; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+         <span><i class="bi bi-eye-fill me-2"></i> <strong>Viewing as:</strong> <span
+               id="simTargetName">User</span></span>
+         <button class="btn btn-sm btn-outline-light border-2 fw-bold" onclick="revertSimulation()">Exit View</button>
+      </div>
+
+      <div class="row mb-4 align-items-start">
+         <div class="col-md-9">
+            <div class="budget-box h-100">
+               <div class="d-flex justify-content-between align-items-end mb-2">
+                  <div class="fw-bold text-uppercase text-muted" id="budgetTitle">Budget Overview
+                  </div>
+                  <div class="d-none" id="budgetTotalDisplay"></div>
+               </div>
+
+               <!-- Mobile-Optimized Grid for Values -->
+               <div class="row g-2 text-muted fs-6 mb-2 align-items-end">
+                  <!-- Mobile: Order 1 (Top Left) -->
+                  <div class="col-6 col-md-auto order-1 order-md-1" style="color:var(--text-main)">
+                     Remaining: <span id="valRemaining" class="fw-bold">---</span>
+                  </div>
+                  <!-- Mobile: Order 3 (Bottom Left - Stacked) | Desktop: Order 2 (Middle) -->
+                  <div class="col-12 col-md-auto order-3 order-md-2" id="lblCommitted" style="color:var(--text-main)">
+                     Committed: <span id="valCommitted" class="fw-bold">---</span>
+                  </div>
+                  <!-- Mobile: Order 2 (Top Right) | Desktop: Order 3 (Right) -->
+                  <div class="col-6 col-md-auto text-end order-2 order-md-3" style="color:var(--text-main)">
+                     Spent: <span id="valSpent" class="fw-bold">---</span>
+                  </div>
+               </div>
+
+               <div class="progress" style="height: 12px; background-color: #e9ecef;">
+                  <div class="progress-bar bg-success" role="progressbar" id="barRemaining" style="width: 0%"></div>
+                  <div class="progress-bar bg-warning" role="progressbar" id="barCommitted" style="width: 0%"></div>
+                  <div class="progress-bar bg-danger" role="progressbar" id="barSpent" style="width: 0%">
+                  </div>
+               </div>
+            </div>
+         </div>
+
+         <div class="col-md-3 justify-content-end align-items-start" id="filterCard" style="display:none;">
+            <div class="d-flex align-items-center w-100 justify-content-end">
+               <strong class="text-muted me-2 small text-nowrap" id="filterLabel">VIEW:</strong>
+               <select class="form-select w-auto form-select-sm" id="deptFilter"
+                  onchange="resetSelectionAndRender()"></select>
+            </div>
+         </div>
+      </div>
+
+      <div class="card shadow-sm border-0">
+         <div class="card-header p-0 bg-light">
+            <ul class="nav nav-tabs px-3 pt-3" id="mainTabs">
+               <li class="nav-item"><button class="nav-link active py-3 px-4" data-bs-toggle="tab"
+                     data-bs-target="#tabList">Order List</button></li>
+               <li class="nav-item"><button class="nav-link py-3 px-4" data-bs-toggle="tab" data-bs-target="#tabNew"
+                     id="btnTabNew">New Request</button></li>
+               <li class="nav-item" id="navLogInvoice" style="display:none;"><button class="nav-link py-3 px-4"
+                     data-bs-toggle="tab" data-bs-target="#tabLogInvoice" onclick="prepLogInvoiceTab()">Log
+                     Invoice</button></li>
+            </ul>
+         </div>
+         <div class="card-body p-0">
+            <div class="tab-content">
+
+               <div class="tab-pane fade show active" id="tabList">
+                  <div id="bulkActionBar"
+                     class="bg-primary text-white px-4 py-2 d-none align-items-center justify-content-between">
+                     <span class="small fw-bold"><span id="bulkCount">0</span> items selected</span>
+                     <button class="btn btn-light btn-sm fw-bold" onclick="openBulkModal()">Mark as
+                        Ordered</button>
+                  </div>
+
+                  <div class="search-toolbar">
+                     <div class="row g-2 align-items-center">
+                        <div class="col-md-3">
+                           <div class="input-group input-group-sm">
+                              <span class="input-group-text border-end-0"><i class="bi bi-search"></i></span>
+                              <input type="text" class="form-control border-start-0" id="searchText"
+                                 placeholder="Search orders..." onkeyup="renderApp(true)">
+                           </div>
+                        </div>
+                        <div class="col-md-2">
+                           <div class="input-group input-group-sm">
+                              <span class="input-group-text border-end-0">From</span>
+                              <input type="date" class="form-control border-start-0" id="searchDateFrom"
+                                 onchange="renderApp(true)">
+                           </div>
+                        </div>
+                        <div class="col-md-3">
+                           <!-- Combined To + Clear for mobile alignment -->
+                           <div class="input-group input-group-sm">
+                              <span class="input-group-text border-end-0">To</span>
+                              <input type="date" class="form-control border-start-0" id="searchDateTo"
+                                 onchange="renderApp(true)">
+                              <button class="btn btn-outline-secondary border-start-0" title="Clear All Filters"
+                                 onclick="clearFilters()"><i class="bi bi-x-lg"></i></button>
+                           </div>
+                        </div>
+
+                        <div class="col-md-auto ms-auto d-flex align-items-center">
+                           <div class="form-check form-switch me-3">
+                              <input class="form-check-input" type="checkbox" id="pendingFilter"
+                                 onchange="resetSelectionAndRender()">
+                              <label class="form-check-label small fw-bold text-muted"
+                                 for="pendingFilter">Pending</label>
+                           </div>
+                           <button class="btn btn-sm btn-outline-success fw-bold border-0" title="Export Current View"
+                              onclick="exportData()">
+                              <i class="bi bi-file-earmark-excel me-1"></i> Export
+                           </button>
+                        </div>
+                     </div>
+                  </div>
+
+                  <div class="table-responsive">
+                     <table class="table table-hover align-middle mb-0" id="orderTable">
+                        <thead class="bg-light text-uppercase small fw-bold" style="color:var(--brand-blue)">
+                           <tr>
+                              <th class="ps-3" style="width:30px" id="headerCheckboxCell">
+                                 <input type="checkbox" class="form-check-input" id="selectAllBox"
+                                    onclick="toggleSelectAll()">
+                              </th>
+                              <th class="sortable" onclick="sortBy('dateReq')">Date <i id="sortIcon_dateReq"
+                                    class="bi bi-arrow-down-up small text-muted"></i></th>
+                              <th class="sortable" onclick="sortBy('dept')">Dept <i id="sortIcon_dept"
+                                    class="bi bi-arrow-down-up small text-muted"></i></th>
+                              <th class="sortable" onclick="sortBy('requester')">Requester <i id="sortIcon_requester"
+                                    class="bi bi-arrow-down-up small text-muted"></i></th>
+                              <th class="sortable" onclick="sortBy('desc')">Description <i id="sortIcon_desc"
+                                    class="bi bi-arrow-down-up small text-muted"></i></th>
+                              <th class="sortable" onclick="sortBy('supplier')">Supplier <i id="sortIcon_supplier"
+                                    class="bi bi-arrow-down-up small text-muted"></i></th>
+                              <th class="sortable" onclick="sortBy('totalPrice')">Cost <i id="sortIcon_totalPrice"
+                                    class="bi bi-arrow-down-up small text-muted"></i></th>
+                              <th class="sortable" onclick="sortBy('status')">Status <i id="sortIcon_status"
+                                    class="bi bi-arrow-down-up small text-muted"></i></th>
+                              <th>Notes</th>
+                              <th class="text-start">Actions</th>
+                           </tr>
+                        </thead>
+                        <tbody id="tableBody"></tbody>
+                     </table>
+                  </div>
+
+                  <div id="zeroState" class="text-center py-5 d-none">
+                     <i class="bi bi-basket2 display-4 opacity-25"></i>
+                     <p class="mt-3 text-muted">You haven't made any requests yet.</p>
+                     <button class="btn btn-outline-primary btn-sm" onclick="showQuickStart()">Quick
+                        Start
+                        Guide</button>
+                  </div>
+
+                  <div class="pagination-bar d-flex justify-content-between align-items-center" id="paginationBar"
+                     style="display:none;">
+                     <div class="d-flex align-items-center">
+                        <span class="me-2">Rows:</span>
+                        <select class="form-select form-select-sm w-auto" id="rowsPerPage"
+                           onchange="updateRows(this.value)">
+                           <option value="10" selected>10</option>
+                           <option value="25">25</option>
+                           <option value="50">50</option>
+                        </select>
+                     </div>
+                     <div>
+                        <span class="me-3" id="pageInfo">0-0 of 0</span>
+                        <button class="btn btn-sm btn-outline-secondary border-0" id="btnPrev"
+                           onclick="changePage(-1)"><i class="bi bi-chevron-left"></i></button>
+                        <button class="btn btn-sm btn-outline-secondary border-0" id="btnNext"
+                           onclick="changePage(1)"><i class="bi bi-chevron-right"></i></button>
+                     </div>
+                  </div>
+               </div>
+
+               <div class="tab-pane fade" id="tabNew">
+                  <div class="p-3 p-md-5 bg-light d-flex justify-content-center">
+                     <div class="card shadow-sm p-4 border-0" style="max-width: 850px; width: 100%;">
+                        <h5 class="mb-4 text-primary fw-bold" id="formTitle">Create Order Request</h5>
+                        <div id="orderFormContainer">
+                           <div class="row mb-3">
+                              <div class="col-md-6 offset-md-3">
+                                 <label class="small fw-bold text-muted text-center d-block mb-1">CHARGING
+                                    DEPARTMENT</label>
+                                 <select class="form-select text-center fw-bold text-primary" id="formDept"
+                                    style="border:2px solid var(--brand-blue);"></select>
+                              </div>
+                           </div>
+                           <div class="alert alert-warning mb-3" id="deptOverride" style="display:none;"></div>
+                           <div id="budgetWarning" class="alert alert-danger mb-3" style="display:none;">
+                              <i class="bi bi-exclamation-triangle-fill me-2"></i> <strong>Over Budget
+                                 Warning</strong>
+                           </div>
+
+                           <div class="row g-3">
+                              <div class="col-md-6">
+                                 <label class="small fw-bold text-muted">Supplier</label>
+                                 <input type="text" class="form-control" id="formSupplier" list="supplierList">
+                                 <datalist id="supplierList"></datalist>
+                              </div>
+                              <div class="col-md-6"><label class="small fw-bold text-muted">Link</label><input
+                                    type="text" class="form-control" id="formLink"></div>
+                              <div class="col-12"><label class="small fw-bold text-muted">Description</label><textarea
+                                    class="form-control" id="formDesc" rows="2"></textarea></div>
+                              <div class="col-md-4"><label class="small fw-bold text-muted">Code</label><input
+                                    type="text" class="form-control" id="formCode"></div>
+                              <div class="col-md-4"><label class="small fw-bold text-muted">Date
+                                    Req</label><input type="date" class="form-control" id="formDateNeeded"></div>
+                              <div class="col-md-4"><label class="small fw-bold text-muted">Location</label><select
+                                    class="form-select" id="formLocation">
+                                    <option value="Prep">Prep</option>
+                                    <option value="Senior">Senior</option>
+                                    <option value="Clyde">Clyde</option>
+                                    <option value="Pyke">Pyke</option>
+                                 </select></div>
+                              <div class="col-md-4"><label class="small fw-bold text-muted">Qty</label><input
+                                    type="number" class="form-control" id="formQty" value="1" min="1"
+                                    oninput="calcTotal('form')"></div>
+                              <div class="col-md-4"><label class="small fw-bold text-muted">Unit
+                                    (£)</label><input type="number" step="0.01" class="form-control" id="formUnit"
+                                    oninput="calcTotal('form')"></div>
+                              <div class="col-md-4"><label class="small fw-bold text-muted">Total
+                                    (£)</label><input type="number" step="0.01" class="form-control fw-bold"
+                                    id="formTotal" readonly>
+                              </div>
+                              <div class="col-12"><label class="small fw-bold text-muted">Attachment
+                                    (Optional)</label><input type="file" class="form-control" id="formFile"></div>
+                              <div class="col-12"><label class="small fw-bold text-muted">Notes</label><textarea
+                                    class="form-control" id="formUserNote" rows="2"></textarea></div>
+                              <input type="hidden" id="editingOrderId">
+                              <div class="col-12 mt-4 text-end d-grid gap-2 d-md-block">
+                                 <button type="button" class="btn btn-secondary me-md-2" id="cancelEditBtn"
+                                    style="display:none;" onclick="cancelEdit()">Cancel Edit</button>
+                                 <button type="button" class="btn btn-primary px-5 fw-bold" id="submitBtn"
+                                    onclick="sendOrder()">SUBMIT REQUEST</button>
+                              </div>
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+
+               <div class="tab-pane fade" id="tabLogInvoice">
+                  <div class="p-3 p-md-5 bg-light d-flex justify-content-center">
+                     <div class="card shadow-sm p-4 border-0" style="max-width: 850px; width: 100%;">
+                        <h5 class="mb-4 text-success fw-bold"><i class="bi bi-journal-plus me-2"></i>Log Invoice /
+                           Direct Spend</h5>
+                        <div class="row g-2">
+                           <div class="col-md-6">
+                              <label class="small fw-bold">Department / Budget Line</label>
+                              <select class="form-select" id="invDept"></select>
+                           </div>
+                           <div class="col-md-6">
+                              <label class="small fw-bold">Invoice Ref (Optional)</label>
+                              <input type="text" class="form-control" id="invRef">
+                           </div>
+                           <div class="col-12">
+                              <label class="small fw-bold">Supplier</label>
+                              <input type="text" class="form-control" id="invSupplier" list="supplierList">
+                           </div>
+                           <div class="col-12">
+                              <label class="small fw-bold">Description</label>
+                              <input type="text" class="form-control" id="invDesc">
+                           </div>
+                           <div class="col-md-6">
+                              <label class="small fw-bold">Cost (£)</label>
+                              <input type="number" step="0.01" class="form-control" id="invCost">
+                           </div>
+
+                           <div class="col-12 mt-3">
+                              <label class="small fw-bold">Upload Invoice/File(s)</label>
+                              <input type="file" class="form-control" id="invFiles" multiple>
+                           </div>
+                           <div class="col-12 mt-4 text-end d-grid gap-2 d-md-block">
+                              <button type="button" class="btn btn-outline-success me-md-2"
+                                 onclick="saveLogInvoice(true)">Save & Add Another</button>
+                              <button type="button" class="btn btn-success px-4" onclick="saveLogInvoice(false)">Save &
+                                 Close</button>
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+
+            </div>
+         </div>
+      </div>
+   </div>
+
+   <footer class="app-footer">
+      <div class="fw-bold">© 2026 Claremont School - IT</div>
+   </footer>
+
+   <div class="modal fade" id="bulkModal" tabindex="-1">
+      <div class="modal-dialog">
+         <div class="modal-content">
+            <div class="modal-header" style="background:var(--brand-yellow);">
+               <h5 class="modal-title text-dark">Bulk Update</h5><button type="button" class="btn-close"
+                  data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+               <p class="text-muted">You are updating <strong><span id="bulkModalCount">0</span></strong> items.</p>
+               <div class="mb-3"><label class="small fw-bold">Common Delivery Date</label><input type="date"
+                     class="form-control" id="bulkDateEst"><small class="text-muted">Applied to all selected
+                     orders.</small></div>
+               <div class="alert alert-warning small"><i class="bi bi-exclamation-triangle-fill me-1"></i>
+                  <strong>Warning:</strong> Costs will be finalized at their current <i>Estimated</i>
+                  value.
+               </div>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-secondary"
+                  data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-primary"
+                  onclick="confirmBulkUpdate()">Confirm Update</button></div>
+         </div>
+      </div>
+   </div>
+   <div class="modal fade" id="financeModal" tabindex="-1">
+      <div class="modal-dialog">
+         <div class="modal-content">
+            <div class="modal-header" style="background:var(--brand-yellow);">
+               <h5 class="modal-title text-dark">Finance Update</h5><button type="button" class="btn-close"
+                  data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body"><input type="hidden" id="finId">
+               <div class="mb-3"><label class="small fw-bold">Est. Delivery Date</label><input type="date"
+                     class="form-control" id="finDateEst"></div>
+               <div class="mb-3"><label class="small fw-bold">Final Cost (£)</label><input type="number" step="0.01"
+                     class="form-control" id="finFinalPrice"></div>
+               <div class="mb-3"><label class="small fw-bold">Category</label><select class="form-select"
+                     id="finCategory">
+                     <option value="">-- Select --</option>
+                     <option value="Curriculum">Curriculum</option>
+                     <option value="Consumables">Consumables</option>
+                     <option value="Equipment">Equipment</option>
+                     <option value="IT Hardware">IT Hardware</option>
+                     <option value="Facilities">Facilities</option>
+                  </select></div>
+               <div class="mb-3"><label class="small fw-bold">Message</label><textarea class="form-control"
+                     id="finMessage"></textarea></div>
+            </div>
+            <div class="modal-footer"><button class="btn btn-primary w-100" onclick="saveFinance()">Update
+                  Status</button></div>
+         </div>
+      </div>
+   </div>
+   <div class="modal fade" id="successModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+         <div class="modal-content text-center p-4 border-0 shadow">
+            <div class="mb-3"><i class="bi bi-check-circle-fill text-success" style="font-size: 3rem;"></i></div>
+            <h4>Success!</h4><button class="btn btn-success px-4 mt-3" onclick="closeSuccess()">Return
+               to List</button>
+         </div>
+      </div>
+   </div>
+   <div class="modal fade" id="notesModal" tabindex="-1">
+      <div class="modal-dialog">
+         <div class="modal-content">
+            <div class="modal-header bg-light">
+               <h5 class="modal-title">Notes</h5><button type="button" class="btn-close"
+                  data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body"><input type="hidden" id="noteId">
+               <div id="chatHistory" class="chat-log mb-3 text-muted"></div>
+               <div class="input-group"><input type="text" class="form-control" id="newNoteText"><button
+                     class="btn btn-outline-primary" id="btnSendNote" onclick="sendNote()">Send</button></div>
+            </div>
+         </div>
+      </div>
+   </div>
+   <div class="modal fade" id="simModal" tabindex="-1">
+      <div class="modal-dialog modal-sm">
+         <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+               <h6 class="modal-title">Simulate</h6>
+            </div>
+            <div class="modal-body"><select class="form-select mb-3" id="simSelect"></select><button
+                  class="btn btn-primary w-100 btn-sm" onclick="confirmSimulation()">Start</button>
+            </div>
+         </div>
+      </div>
+   </div>
+   <div class="modal fade" id="msgModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered modal-sm">
+         <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+               <h5 class="modal-title fw-bold" id="msgTitle"></h5>
+            </div>
+            <div class="modal-body text-center py-4">
+               <p id="msgBody" class="mb-0"></p>
+            </div>
+            <div class="modal-footer border-0 justify-content-center pt-0"><button type="button"
+                  class="btn btn-primary px-4" data-bs-dismiss="modal">OK</button></div>
+         </div>
+      </div>
+   </div>
+   <div class="modal fade" id="cancelReasonModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+         <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger text-white">
+               <h5 class="modal-title fw-bold">Cancel Order</h5>
+            </div>
+            <div class="modal-body">
+               <p>Please provide a reason for cancellation:</p>
+               <input type="hidden" id="cancelOrderId">
+               <textarea class="form-control" id="cancelReason" rows="3"
+                  placeholder="e.g. Duplicate order, No longer needed..."></textarea>
+            </div>
+            <div class="modal-footer border-0">
+               <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Back</button>
+               <button type="button" class="btn btn-danger" onclick="confirmCancel()">Confirm Cancel</button>
+            </div>
+         </div>
+      </div>
+   </div>
+
+   <div class="modal fade" id="detailsModal" tabindex="-1">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+         <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-light">
+               <h5 class="modal-title fw-bold text-primary"><i class="bi bi-info-circle-fill me-2"></i>Order Details
+               </h5>
+               <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4" id="detailsBody">
+               <!-- Populated dynamically -->
+            </div>
+            <div class="modal-footer bg-light">
+               <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+         </div>
+      </div>
+   </div>
+
+   <div class="modal fade" id="confirmModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+         <div class="modal-content border-0 shadow">
+            <div class="modal-header" style="background:var(--brand-yellow);">
+               <h5 class="modal-title fw-bold text-dark" id="confirmTitle">Confirm</h5>
+            </div>
+            <div class="modal-body text-center py-4">
+               <p id="confirmBody" class="mb-0 lead"></p>
+            </div>
+            <div class="modal-footer justify-content-center border-0 pt-0"><button type="button"
+                  class="btn btn-secondary px-4" data-bs-dismiss="modal">Cancel</button><button type="button"
+                  class="btn btn-primary px-4" id="confirmBtnAction">Yes</button></div>
+         </div>
+      </div>
+   </div>
+
+   <div class="modal fade" id="quickStartModal" tabindex="-1">
+      <div class="modal-dialog">
+         <div class="modal-content">
+            <div class="modal-header">
+               <h5 class="modal-title">Quick Start</h5><button type="button" class="btn-close"
+                  data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+               <ul>
+                  <li>Check your remaining budget in the top left.</li>
+                  <li>Click <b>New Request</b> to order an item.</li>
+                  <li>Once ordered, use the <b>Envelope</b> icon on the order row to chat with
+                     Finance.</li>
+               </ul>
+            </div>
+         </div>
+      </div>
+   </div>
+
+   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+   <script>
+      // --- THEME LOGIC ---
+      function setTheme(theme) {
+         document.documentElement.setAttribute('data-theme', theme);
+         localStorage.setItem('theme', theme);
+         // Update the direct button icon if visible
+         const icon = document.getElementById('directThemeIcon');
+         if (icon) icon.className = theme === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-stars-fill';
+      }
+
+      if (localStorage.getItem('theme') === 'dark') {
+         setTheme('dark');
+      }
+
+      function toggleTheme() {
+         let current = document.documentElement.getAttribute('data-theme');
+         setTheme(current === 'dark' ? 'light' : 'dark');
+      }
+
+      // --- MAIN APP LOGIC ---
+      let globalData = {}; let currentUser = {}; let reportedMissing = {}; let currentBudgetLimit = 0;
+      let currentPage = 1; let rowsPerPage = 10; let filteredOrders = []; let globalConfirmCallback = null;
+      let selectedOrderIds = new Set();
+
+      function showMsg(title, msg) { document.getElementById('msgTitle').innerText = title; document.getElementById('msgBody').innerHTML = msg; new bootstrap.Modal(document.getElementById('msgModal')).show(); }
+      function showConfirm(title, msg, callback) { document.getElementById('confirmTitle').innerText = title; document.getElementById('confirmBody').innerHTML = msg; globalConfirmCallback = callback; new bootstrap.Modal(document.getElementById('confirmModal')).show(); }
+      function showQuickStart() { new bootstrap.Modal(document.getElementById('quickStartModal')).show(); }
+      document.getElementById('confirmBtnAction').addEventListener('click', function () { if (globalConfirmCallback) globalConfirmCallback(); bootstrap.Modal.getInstance(document.getElementById('confirmModal')).hide(); });
+
+      function formatCurrency(val) {
+         const num = parseFloat(val);
+         if (isNaN(num)) return "£0.00";
+         return num.toLocaleString('en-GB', { style: 'currency', currency: 'GBP' });
+      }
+
+      function getSafeLink(url, supplier) {
+         if (!url || url.length < 3) return supplier;
+         let val = url.trim();
+         if (!val.includes('.') && !val.toLowerCase().startsWith('http')) return supplier;
+         let safeUrl = (!val.toLowerCase().startsWith("http")) ? "https://" + val : val;
+         return `<a href="${safeUrl}" target="_blank" class="text-decoration-none fw-bold" style="color:var(--link-blue)">${supplier} <i class="bi bi-box-arrow-up-right" style="font-size:0.75rem"></i></a>`;
+      }
+
+      const loadingMessages = ["Loading Portal...", "Preparing Interface...", "Please Wait..."];
+      let loadingInterval = null;
+
+      function startInitialLoad(msg) {
+         document.getElementById('skeletonScreen').style.display = 'block';
+         const overlay = document.getElementById('overlay');
+         overlay.style.display = 'flex';
+
+         // USE CSS CLASS for robust override
+         overlay.classList.add('initial-load');
+
+         const txt = document.getElementById('loadingText');
+         txt.innerText = msg || loadingMessages[0];
+         txt.style.color = "var(--brand-blue)";
+
+         let msgIdx = 0;
+         loadingInterval = setInterval(() => {
+            msgIdx = (msgIdx + 1) % loadingMessages.length;
+            txt.innerText = loadingMessages[msgIdx];
+         }, 2000); // Slower, calmer cycle (2s)
+      }
+
+      function showProcessing(msg) {
+         const overlay = document.getElementById('overlay');
+         overlay.style.display = 'flex';
+         // Use the Processing CSS Class (Dimmed + Blur + No Box)
+         overlay.classList.add('processing-state');
+         // Ensure spinner is visible (as it's hidden by default logic if we messed with it, but processing-state handles it)
+         document.getElementById('spinner').style.display = 'block';
+         document.getElementById('loadingText').innerText = msg;
+      }
+
+      function stopLoading() {
+         if (loadingInterval) clearInterval(loadingInterval);
+         loadingInterval = null;
+         const overlay = document.getElementById('overlay');
+         const spinner = document.getElementById('spinner');
+
+         document.getElementById('skeletonScreen').style.display = 'none';
+         spinner.style.display = 'none';
+         overlay.style.display = 'none';
+
+         // Clean up ALL override classes
+         overlay.classList.remove('initial-load');
+         overlay.classList.remove('processing-state');
+
+         // Reset any inline styles
+         overlay.style.background = "";
+         overlay.style.backdropFilter = "";
+
+         // Reset Text
+         document.getElementById('loadingText').innerText = "LOADING...";
+         document.getElementById('loadingText').style.color = "";
+      }
+
+      function loadData() {
+         google.script.run.withSuccessHandler(response => {
+            try {
+               // ... (Validation logic omitted, assumed intact)
+               // 1. Validate raw response
+               if (!response) { showErr("Received empty response from server"); return; }
+
+               let data;
+               if (typeof response === 'string') {
+                  // 2. Try parsing if string
+                  try { data = JSON.parse(response); }
+                  catch (e) { showErr("Failed to parse server JSON: " + e.message); return; }
+               } else {
+                  data = response;
+               }
+
+               // 3. Validate object structure
+               if (typeof data !== 'object' || data === null) { showErr("Invalid data format received"); return; }
+
+               // --- NORMALIZATION FOR LIVE SERVER ---
+               // The live server returns raw { budgets: {...}, orders: [...] } without wrapper or user info.
+               // We must polyfill this to match our app's expectations.
+               if (!data.success && data.budgets && data.orders) {
+                  console.log("Normalizing raw server response...");
+
+                  // 1. Polyfill User
+                  // Since server doesn't tell us who we are, we default to a generic Admin to allow viewing.
+                  // We infer available departments from the budget keys.
+                  const inferredDepts = Object.keys(data.budgets);
+                  data.user = {
+                     email: "Live User",
+                     dept: inferredDepts[0] || "All",
+                     depts: inferredDepts,
+                     role: "Admin",
+                     realRole: "Admin",
+                     isSimulated: false
+                  };
+
+                  // 2. Normalize Budgets
+                  // Live: { "IT": 50000 }  ->  Expected: { "IT": { total: 50000 } }
+                  for (let dept in data.budgets) {
+                     let val = data.budgets[dept];
+                     if (typeof val === 'number') {
+                        data.budgets[dept] = { total: val };
+                     }
+                  }
+
+                  // 3. Set Success
+                  data.success = true;
+               }
+               // -------------------------------------
+
+               // 4. Check success flag with strict fallback
+               if (!data.success) {
+                  // Debugging: Show full object to see what's actually returned
+                  let debugStr = "";
+                  try { debugStr = JSON.stringify(data); } catch (e) { debugStr = "Ob: " + data; }
+
+                  let msg = data.error || ("Server error: " + debugStr);
+                  showErr(msg);
+                  return;
+               }
+
+               globalData = data; currentUser = data.user;
+
+               const banner = document.getElementById('simBanner');
+               const ddSimulate = document.getElementById('ddSimulate');
+
+               if (currentUser.isSimulated) {
+                  banner.style.display = 'flex';
+                  document.getElementById('simTargetName').innerText = currentUser.email;
+                  if (ddSimulate) ddSimulate.style.display = 'none';
+               } else {
+                  banner.style.display = 'none';
+                  if (ddSimulate) ddSimulate.style.display = (currentUser.realRole === "Admin") ? 'block' : 'none';
+               }
+
+               document.getElementById('userDisplay').innerText = currentUser.email;
+               const list = document.getElementById('supplierList');
+               const uniqueSuppliers = [...new Set(data.orders.map(o => o.supplier))].sort();
+               list.innerHTML = uniqueSuppliers.map(s => `<option value="${s}">`).join('');
+
+               setupDropdowns();
+               stopLoading();
+               document.getElementById('mainApp').style.display = 'block';
+               renderApp(true);
+            } catch (e) { showErr(e.toString()); }
+         }).getDashboardData();
+      }
+      startInitialLoad("Loading Portal...");
+      loadData();
+
+      function setupDropdowns() {
+         const filterCard = document.getElementById('filterCard');
+         const deptFilter = document.getElementById('deptFilter');
+         const settingsDropdown = document.getElementById('settingsDropdown');
+         const directThemeToggle = document.getElementById('directThemeToggle');
+         const invDept = document.getElementById('invDept');
+
+         // Logic to switch between Gear Dropdown (Admin) and Simple Toggle (Staff)
+
+         // RESET STATE: Prevent stale labels/visibility when switching views (e.g. Admin -> Sim)
+         document.getElementById('filterLabel').innerText = "VIEW:";
+         filterCard.style.display = 'none';
+
+         // Fix: Check for simulation. If simulating without 'All' access, treat as Staff.
+         let isAdminView = (currentUser.role === 'Admin');
+         if (currentUser.isSimulated && (!currentUser.depts || !currentUser.depts.includes('All'))) {
+            isAdminView = false;
+         }
+
+         if (isAdminView) {
+            settingsDropdown.style.display = 'block';
+            directThemeToggle.style.display = 'none';
+
+            // SECURITY: Hide Master Sheet/Export if simulating
+            const showAdminTools = !currentUser.isSimulated;
+            const ddSheet = document.getElementById('ddSheet');
+            const ddExport = document.getElementById('ddExport');
+            if (ddSheet) ddSheet.style.display = showAdminTools ? 'block' : 'none';
+            if (ddExport) ddExport.style.display = showAdminTools ? 'block' : 'none';
+         } else {
+            settingsDropdown.style.display = 'none';
+            directThemeToggle.style.display = 'block';
+         }
+
+         deptFilter.innerHTML = "";
+         invDept.innerHTML = "<option value=''>-- Select --</option>";
+         let showFilter = false;
+
+         // Use the calculated View mode (which respects simulation)
+         if (isAdminView) {
+            showFilter = true;
+            document.getElementById('filterLabel').innerText = "FINANCE VIEW:";
+            document.getElementById('navLogInvoice').style.display = "block";
+
+            deptFilter.add(new Option("All Departments", "All"));
+            const allDepts = [...new Set([...Object.keys(globalData.budgets), ...globalData.orders.map(o => o.dept)])].sort();
+            allDepts.forEach(d => {
+               deptFilter.add(new Option(d, d));
+               if (globalData.budgets[d]) invDept.add(new Option(d, d));
+            });
+         } else {
+            // STAFF
+            document.getElementById('navLogInvoice').style.display = "none";
+
+            // --- SMART HIDE LOGIC ---
+            // Fix: Check for null/empty depts
+            if (currentUser.depts && currentUser.depts.length > 1) {
+               showFilter = true;
+               document.getElementById('filterLabel').innerText = "DEPARTMENT VIEW:";
+               currentUser.depts.forEach(d => deptFilter.add(new Option(d, d)));
+            } else {
+               showFilter = false; // Hide filter if only 1 dept OR no depts
+               // The single dept is effectively already "selected" by default
+            }
+         }
+
+         filterCard.style.display = showFilter ? "flex" : "none";
+         document.getElementById('deptOverride').style.display = showFilter ? "block" : "none";
+
+         // Populate New Order Form Department Select
+         const formDept = document.getElementById('formDept');
+         formDept.innerHTML = "";
+
+         let availableDepts = [];
+         if (isAdminView) {
+            // Admin sees all depts + budget keys (merged unique)
+            availableDepts = [...new Set([...Object.keys(globalData.budgets), ...globalData.orders.map(o => o.dept)])].sort();
+         } else {
+            // Staff sees their assigned depts
+            availableDepts = currentUser.depts || [];
+         }
+
+         if (availableDepts.length === 0) {
+            formDept.add(new Option("No Departments Assigned", ""));
+            formDept.disabled = true;
+         } else {
+            formDept.disabled = (availableDepts.length === 1); // Auto-lock if only 1 option
+            availableDepts.forEach(d => formDept.add(new Option(d, d)));
+
+            // Smart Select: If current filter is valid for this user, select it.
+            const currentFilter = deptFilter.value;
+            if (currentFilter && currentFilter !== 'All' && availableDepts.includes(currentFilter)) {
+               formDept.value = currentFilter;
+            } else if (availableDepts.length > 0) {
+               // Default to first if "All" or invalid
+               formDept.value = availableDepts[0];
+            }
+         }
+
+         const locSelect = document.getElementById('formLocation');
+         if (locSelect && currentUser.defaultSite) {
+            for (let i = 0; i < locSelect.options.length; i++) {
+               if (locSelect.options[i].value === currentUser.defaultSite) { locSelect.selectedIndex = i; break; }
+            }
+         }
+      }
+
+      function resetSelectionAndRender() {
+         selectedOrderIds.clear();
+         updateBulkBar();
+         document.getElementById('selectAllBox').checked = false;
+         renderApp(true);
+      }
+
+      function renderApp(resetPage = false) {
+         if (resetPage) currentPage = 1;
+         const filterEl = document.getElementById('deptFilter');
+         const pendingOnly = document.getElementById('pendingFilter').checked;
+
+         // Determine Active View
+         let activeView = 'All';
+         if (filterEl.options.length > 0) {
+            activeView = filterEl.value;
+         } else if (currentUser.depts.length > 0) {
+            activeView = currentUser.depts[0]; // Default for single-dept users
+         }
+
+         const isAdmin = (currentUser.role === 'Admin');
+         const formInputs = document.querySelectorAll('#orderFormContainer input, #orderFormContainer textarea, #orderFormContainer select, #submitBtn');
+         const deptBanner = document.getElementById('deptOverride');
+
+         if (isAdmin && activeView === 'All') {
+            // Removed: formInputs.forEach(el => el.disabled = true);
+            // Removed: deptBanner.innerHTML = ...
+            deptBanner.style.display = 'none'; // Hide banner, use dropdown instead
+         } else {
+            formInputs.forEach(el => el.disabled = false);
+            // Removed: deptBanner.innerHTML = ...
+            deptBanner.style.display = 'none'; // Hide banner, use dropdown instead
+         }
+
+         const searchText = document.getElementById('searchText').value.toLowerCase();
+         const dFrom = document.getElementById('searchDateFrom').valueAsDate;
+         const dTo = document.getElementById('searchDateTo').valueAsDate;
+
+         filteredOrders = globalData.orders.filter(o => {
+            if (activeView !== 'All' && o.dept !== activeView) return false;
+            const isCancelled = o.desc.includes("CANCELLED");
+            const isOrdered = (o.status === "Ordered");
+            if (pendingOnly && (isOrdered || isCancelled)) return false;
+            if (searchText && !Object.values(o).some(v => String(v).toLowerCase().includes(searchText))) return false;
+            if (dFrom || dTo) {
+               let parts = o.dateReq.split('/');
+               let od = new Date(parts[2], parts[1] - 1, parts[0]);
+               if (dFrom) { dFrom.setHours(0, 0, 0, 0); if (od < dFrom) return false; }
+               if (dTo) { dTo.setHours(23, 59, 59, 999); if (od > dTo) return false; }
+            }
+            return true;
+         });
+
+         // Apply Sorting
+         filteredOrders.sort((a, b) => {
+            let valA = a[currentSort.field];
+            let valB = b[currentSort.field];
+
+            // Handle currency/numbers
+            if (currentSort.field === 'totalPrice') {
+               // Prefer finalPrice if exists
+               valA = parseFloat(a.finalPrice || a.totalPrice) || 0;
+               valB = parseFloat(b.finalPrice || b.totalPrice) || 0;
+            }
+
+            // Handle Dates (DD/MM/YYYY)
+            if (['dateReq', 'dateNeeded', 'dateOrdered'].includes(currentSort.field)) {
+               const parseD = (d) => { if (!d) return 0; const p = d.split('/'); return new Date(p[2], p[1] - 1, p[0]).getTime(); };
+               valA = parseD(valA);
+               valB = parseD(valB);
+            }
+
+            if (valA < valB) return (currentSort.dir === 'asc') ? -1 : 1;
+            if (valA > valB) return (currentSort.dir === 'asc') ? 1 : -1;
+            return 0;
+         });
+
+         updateSortIcons();
+
+         // Budget Logic - Updated to show Dept Name if Filter Hidden
+         // Budget Logic - Updated for 3-split view
+         const budgetTitle = document.getElementById('budgetTitle');
+         const budgetTotalDisplay = document.getElementById('budgetTotalDisplay');
+
+         const valRemaining = document.getElementById('valRemaining');
+         const valCommitted = document.getElementById('valCommitted');
+         const valSpent = document.getElementById('valSpent');
+
+         const barRemaining = document.getElementById('barRemaining');
+         const barCommitted = document.getElementById('barCommitted');
+         const barSpent = document.getElementById('barSpent');
+
+         if (activeView !== 'All') {
+            const b = globalData.budgets[activeView];
+            budgetTitle.innerText = activeView + " - Budget Overview"; // Updated Title
+
+            // Calc Spent (Status=Ordered) and Committed (Status=Pending) for THIS department
+            const deptOrders = globalData.orders.filter(o => o.dept === activeView && !o.desc.includes("CANCELLED"));
+            const spent = deptOrders.filter(o => o.status === "Ordered")
+               .reduce((sum, o) => sum + (parseFloat(o.finalPrice || o.totalPrice) || 0), 0);
+            const committed = deptOrders.filter(o => o.status === "Pending")
+               .reduce((sum, o) => sum + (parseFloat(o.totalPrice) || 0), 0);
+
+            if (b) {
+               // --- CASE A: Budget Exists ---
+               budgetTotalDisplay.innerText = formatCurrency(b.total);
+               const remaining = b.total - spent - committed;
+               currentBudgetLimit = remaining;
+
+               valRemaining.innerText = formatCurrency(remaining);
+               valRemaining.classList.add('fw-bold');
+               valRemaining.style.fontStyle = "normal";
+
+               valCommitted.innerText = formatCurrency(committed);
+               document.getElementById('lblCommitted').style.display = (committed === 0) ? 'none' : 'block';
+               valSpent.innerText = formatCurrency(spent);
+
+               let pctRemaining = (remaining / b.total) * 100;
+               let pctCommitted = (committed / b.total) * 100;
+               let pctSpent = (spent / b.total) * 100;
+               if (pctRemaining < 0) pctRemaining = 0;
+
+               // Bar Logic: Relative to budget
+               // Remaining
+               barRemaining.style.width = pctRemaining + "%";
+               barRemaining.setAttribute('data-label', 'Remaining');
+               barRemaining.setAttribute('data-val', formatCurrency(remaining));
+
+               // Committed
+               barCommitted.style.width = pctCommitted + "%";
+               barCommitted.setAttribute('data-label', 'Committed');
+               barCommitted.setAttribute('data-val', formatCurrency(committed));
+
+               // Spent
+               barSpent.style.width = pctSpent + "%";
+               barSpent.setAttribute('data-label', 'Spent');
+               barSpent.setAttribute('data-val', formatCurrency(spent));
+
+            } else {
+               // --- CASE B: No Allocated Budget ---
+               budgetTotalDisplay.innerText = "";
+               currentBudgetLimit = 0;
+
+               valRemaining.innerText = "No Budget Set";
+               valRemaining.classList.remove('fw-bold'); // Make it clearer it's unique status
+               valRemaining.style.fontStyle = "italic";
+
+               valCommitted.innerText = formatCurrency(committed);
+               document.getElementById('lblCommitted').style.display = (committed === 0) ? 'none' : 'block';
+               valSpent.innerText = formatCurrency(spent);
+
+               // Bar Logic: Split 100% between Committed vs Spent
+               const totalActivity = spent + committed;
+               if (totalActivity > 0) {
+                  let pctSpent = (spent / totalActivity) * 100;
+                  let pctCommitted = (committed / totalActivity) * 100;
+
+                  barRemaining.style.width = "0%";
+                  barRemaining.setAttribute('data-label', 'Remaining');
+                  barRemaining.setAttribute('data-val', 'No Budget');
+
+                  barCommitted.style.width = pctCommitted + "%";
+                  barCommitted.setAttribute('data-label', 'Committed');
+                  barCommitted.setAttribute('data-val', formatCurrency(committed));
+
+                  barSpent.style.width = pctSpent + "%";
+                  barSpent.setAttribute('data-label', 'Spent');
+                  barSpent.setAttribute('data-val', formatCurrency(spent));
+
+               } else {
+                  barRemaining.style.width = "0%";
+                  barCommitted.style.width = "0%";
+                  barSpent.style.width = "0%";
+                  // Reset attrs
+                  [barRemaining, barCommitted, barSpent].forEach(b => {
+                     b.removeAttribute('data-label');
+                     b.removeAttribute('data-val');
+                  });
+               }
+            }
+
+            // Re-attach listeners after update
+            attachTooltipListeners();
+
+         } else {
+            // All View or Reset
+            budgetTitle.innerText = "Budget Overview";
+            budgetTotalDisplay.innerText = "---";
+            valRemaining.innerText = "---";
+            valRemaining.classList.add('fw-bold');
+            valRemaining.style.fontStyle = "normal";
+            valCommitted.innerText = "---";
+            document.getElementById('lblCommitted').style.display = 'block';
+            valSpent.innerText = "---";
+            barRemaining.style.width = "0%";
+            barCommitted.style.width = "0%";
+            barSpent.style.width = "0%";
+         }
+
+         const tbody = document.getElementById('tableBody');
+         tbody.innerHTML = '';
+
+         document.getElementById('zeroState').classList.toggle('d-none', filteredOrders.length > 0);
+         document.getElementById('paginationBar').style.display = filteredOrders.length ? 'flex' : 'none';
+         if (!filteredOrders.length) return;
+
+         const startIdx = (currentPage - 1) * rowsPerPage;
+         const ordersToDraw = filteredOrders.slice(startIdx, startIdx + parseInt(rowsPerPage));
+         document.getElementById('pageInfo').innerText = `${startIdx + 1}-${startIdx + ordersToDraw.length} of ${filteredOrders.length}`;
+         document.getElementById('btnPrev').disabled = (currentPage === 1);
+         document.getElementById('btnNext').disabled = (startIdx + ordersToDraw.length >= filteredOrders.length);
+
+         // --- BUDGET HIGHLIGHTING PRE-CALC ---
+         const budgetFlags = {}; // { dept: number_available }
+         if (isAdmin) {
+            // 1. Calculate Spent per Dept (Live from orders to be consistent)
+            const deptSpent = {};
+            globalData.orders.forEach(o => {
+               if (o.status === 'Ordered') {
+                  const cost = parseFloat(o.finalPrice || o.totalPrice) || 0;
+                  deptSpent[o.dept] = (deptSpent[o.dept] || 0) + cost;
+               }
+            });
+
+            // 2. Init Available Funds per Dept
+            Object.keys(globalData.budgets).forEach(d => {
+               const total = globalData.budgets[d].total || 0;
+               const spent = deptSpent[d] || 0;
+               budgetFlags[d] = total - spent;
+            });
+         }
+
+         let pendingVisible = false;
+
+         ordersToDraw.forEach(o => {
+            const isOrdered = o.status === "Ordered";
+            const isCancelled = o.desc.includes("CANCELLED");
+
+            // --- BUDGET CHECK ---
+            let isOverBudgetRisk = false;
+            // Only evaluate Pending items that are not cancelled
+            if (!isOrdered && !isCancelled && isAdmin) {
+               const d = o.dept;
+               if (budgetFlags[d] !== undefined) {
+                  const cost = parseFloat(o.totalPrice) || 0;
+                  // Check if we can afford this
+                  if (budgetFlags[d] < cost) {
+                     isOverBudgetRisk = true;
+                  }
+                  // Deduct from running balance regardless (FIFO logic)
+                  // If we are already negative, we stay negative
+                  budgetFlags[d] -= cost;
+               }
+            }
+
+            if (!isOrdered && !isCancelled) pendingVisible = true;
+
+            let badge = isOrdered ? `<span class="badge badge-ordered">Ordered</span>` : `<span class="badge badge-pending">Pending</span>`;
+            if (isCancelled) badge = `<span class="badge bg-secondary">Cancelled</span>`;
+            if (isOrdered && o.expectedDate) badge += `<div class="small text-muted mt-1">Est: ${o.expectedDate}</div>`;
+
+            // Add Risk indicator
+            if (isOverBudgetRisk) {
+               badge += `<div class="mt-1"><span class="badge bg-danger"><i class="bi bi-exclamation-triangle"></i> Over Budget</span></div>`;
+            }
+
+            const hasAccess = currentUser.depts.includes(o.dept);
+
+            let actions = `<div class="action-cell">`;
+            // Always show details button
+            actions += `<button class="btn btn-sm text-secondary btn-action-icon" title="View Details" onclick="openDetails('${o.id}')"><i class="bi bi-eye-fill"></i></button>`;
+
+            actions += `<button class="btn btn-sm text-success btn-action-icon" title="Duplicate Order" onclick="duplicateOrder('${o.id}')"><i class="bi bi-arrow-repeat"></i></button>`;
+
+            if (isAdmin && !isCancelled) {
+               actions += `<button class="btn btn-sm btn-outline-dark btn-action-manage" onclick="openFinance('${o.id}')">Manage</button>`;
+            } else {
+               actions += `<div class="placeholder-manage"></div>`;
+            }
+
+            if (!isOrdered && !isCancelled && isAdmin) {
+               actions += `<button class="btn btn-sm text-primary btn-action-icon" onclick="editOrder('${o.id}')"><i class="bi bi-pencil-fill"></i></button>`;
+               actions += `<button class="btn btn-sm text-danger btn-action-icon" onclick="cancelOrder('${o.id}')"><i class="bi bi-trash-fill"></i></button>`;
+            } else if (!isOrdered && !isCancelled && hasAccess) {
+               // Requester can Cancel but NOT Edit
+               actions += `<div class="placeholder-icon"></div>`;
+               actions += `<button class="btn btn-sm text-danger btn-action-icon" onclick="cancelOrder('${o.id}')"><i class="bi bi-trash-fill"></i></button>`;
+            } else {
+               actions += `<div class="placeholder-icon"></div>`;
+               actions += `<div class="placeholder-icon"></div>`;
+            }
+
+            actions += `</div>`;
+
+            let chk = isAdmin && !isOrdered && !isCancelled ? `<input type="checkbox" class="form-check-input" value="${o.id}" onchange="toggleRow(this)" ${selectedOrderIds.has(String(o.id)) ? 'checked' : ''}>` : "";
+            let displayCost = (o.finalPrice !== "" && o.finalPrice != null) ? o.finalPrice : o.totalPrice;
+
+            const rowClass = isOverBudgetRisk ? "row-over-budget" : (isOrdered ? 'bg-light' : '');
+
+            tbody.innerHTML += `
+          <tr class="${rowClass}">
+            <td class="ps-3 chk-cell" data-label="Select">${chk}</td>
+            <td data-label="Date">${o.dateReq}</td>
+            <td data-label="Dept"><span class="badge bg-white text-dark border">${o.dept}</span></td>
+            <td data-label="Requester"><small>${o.requester.split('@')[0]}</small></td>
+            <td data-label="Description">${o.desc}</td>
+            <td data-label="Supplier">${getSafeLink(o.link, o.supplier)}</td>
+            <td data-label="Cost">${formatCurrency(displayCost)}</td>
+            <td data-label="Status">${badge}</td>
+            <td data-label="Notes" class="text-center"><button class="btn-note ${o.notes ? 'has-notes' : ''}" onclick="openNotes('${o.id}')"><i class="bi ${o.notes ? 'bi-envelope-fill' : 'bi-envelope'}"></i></button></td>
+            <td data-label="Actions">${actions}</td>
+          </tr>`;
+         });
+
+         const headerChk = document.getElementById('headerCheckboxCell');
+         if (isAdmin && pendingVisible) {
+            headerChk.style.visibility = 'table-cell';
+         } else {
+            headerChk.style.visibility = 'none';
+         }
+      }
+
+      function prepLogInvoiceTab() {
+         const currentDept = document.getElementById('deptFilter').value;
+         const invDeptSelect = document.getElementById('invDept');
+         if (currentDept && currentDept !== 'All') {
+            invDeptSelect.value = currentDept;
+         }
+      }
+
+      function validateForm() {
+         const dept = document.getElementById('formDept').value;
+         const supplier = document.getElementById('formSupplier').value;
+         const desc = document.getElementById('formDesc').value;
+         const total = document.getElementById('formTotal').value;
+
+         if (!dept) return { isValid: false, msg: "Department is required." };
+         if (!supplier) return { isValid: false, msg: "Supplier is required." };
+         if (!desc) return { isValid: false, msg: "Description is required." };
+         if (!total || parseFloat(total) <= 0) return { isValid: false, msg: "Valid total cost is required." };
+
+         return { isValid: true };
+      }
+      function saveLogInvoice(addAnother) {
+         const dept = document.getElementById('invDept').value;
+         const supplier = document.getElementById('invSupplier').value;
+         const desc = document.getElementById('invDesc').value;
+         const cost = document.getElementById('invCost').value;
+         if (!dept || !supplier || !desc || !cost) { showMsg("Error", "Dept, Supplier, Description and Cost are required."); return; }
+
+         document.getElementById('overlay').style.display = 'flex';
+
+         const filesInput = document.getElementById('invFiles');
+         const filePromises = [];
+
+         if (filesInput.files.length > 0) {
+            for (let i = 0; i < filesInput.files.length; i++) {
+               const file = filesInput.files[i];
+               const p = new Promise((resolve, reject) => {
+                  const reader = new FileReader();
+                  reader.onload = (e) => resolve({ name: file.name, type: file.type, data: e.target.result.split(',')[1] });
+                  reader.onerror = reject;
+                  reader.readAsDataURL(file);
+               });
+               filePromises.push(p);
+            }
+         }
+
+         Promise.all(filePromises).then(fileObjs => {
+            const invData = {
+               dept: dept, invoiceRef: document.getElementById('invRef').value,
+               supplier: supplier, desc: desc, cost: cost,
+               files: fileObjs
+            };
+
+            google.script.run.withSuccessHandler(res => {
+               document.getElementById('overlay').style.display = 'none';
+               if (addAnother) {
+                  document.getElementById('invSupplier').value = "";
+                  document.getElementById('invDesc').value = "";
+                  document.getElementById('invCost').value = "";
+                  document.getElementById('invRef').value = "";
+                  document.getElementById('invFiles').value = "";
+                  showMsg("Success", "Invoice logged. Ready for next.");
+               } else {
+                  showMsg("Success", "Invoice logged successfully.");
+                  const tabListBtn = document.querySelector('#mainTabs button[data-bs-target="#tabList"]');
+                  new bootstrap.Tab(tabListBtn).show();
+                  loadData();
+               }
+            }).logInvoice(invData);
+         });
+      }
+
+      function sendOrder() {
+         const supplier = document.getElementById('formSupplier').value;
+         const desc = document.getElementById('formDesc').value;
+         const total = document.getElementById('formTotal').value;
+
+         if (!supplier || !desc || !total) { showMsg("Error", "Missing required fields."); return; }
+
+         const deptVal = document.getElementById('formDept').value;
+         if (!deptVal) { showMsg("Error", "Please select a valid Charging Department."); return; }
+
+         const fileInput = document.getElementById('formFile');
+         const processSubmit = (fileObj) => {
+            const orderObj = {
+               id: document.getElementById('editingOrderId').value,
+               supplier: supplier,
+               link: document.getElementById('formLink').value,
+               desc: desc,
+               code: document.getElementById('formCode').value,
+               qty: document.getElementById('formQty').value,
+               unitPrice: document.getElementById('formUnit').value,
+               totalPrice: total,
+               location: document.getElementById('formLocation').value,
+               dateNeeded: document.getElementById('formDateNeeded').value,
+               userNote: document.getElementById('formUserNote').value,
+               selectedDept: deptVal,
+               fileData: fileObj ? fileObj.data : null,
+               fileName: fileObj ? fileObj.name : null,
+               mimeType: fileObj ? fileObj.type : null
+            };
+
+            document.getElementById('submitBtn').innerText = "Sending...";
+            document.getElementById('submitBtn').disabled = true;
+
+            google.script.run.withSuccessHandler(() => {
+               new bootstrap.Modal(document.getElementById('successModal')).show();
+               document.getElementById('submitBtn').innerText = "SUBMIT REQUEST";
+               document.getElementById('submitBtn').disabled = false;
+            }).withFailureHandler(e => {
+               showMsg("Error", "Submit failed: " + e);
+               document.getElementById('submitBtn').disabled = false;
+            }).submitOrder(orderObj);
+         };
+
+         if (fileInput.files.length > 0) {
+            const file = fileInput.files[0];
+            if (file.size > 5 * 1024 * 1024) { showMsg("Error", "File too large (Max 5MB)"); return; }
+            const reader = new FileReader();
+            reader.onload = (e) => { processSubmit({ name: file.name, type: file.type, data: e.target.result.split(',')[1] }); };
+            reader.readAsDataURL(file);
+         } else {
+            processSubmit(null);
+         }
+      }
+      function toggleRow(chk) { if (chk.checked) selectedOrderIds.add(chk.value); else selectedOrderIds.delete(chk.value); updateBulkBar(); }
+      function toggleSelectAll() { const boxes = document.querySelectorAll('tbody input[type="checkbox"]'); const master = document.getElementById('selectAllBox'); boxes.forEach(b => { b.checked = master.checked; toggleRow(b); }); }
+      function updateBulkBar() { const bar = document.getElementById('bulkActionBar'); const count = selectedOrderIds.size; if (count > 0) { bar.classList.remove('d-none'); bar.classList.add('d-flex'); document.getElementById('bulkCount').innerText = count; } else { bar.classList.add('d-none'); bar.classList.remove('d-flex'); } }
+      function openBulkModal() { document.getElementById('bulkModalCount').innerText = selectedOrderIds.size; document.getElementById('bulkDateEst').value = ""; new bootstrap.Modal(document.getElementById('bulkModal')).show(); }
+      function confirmBulkUpdate() { const dateEst = document.getElementById('bulkDateEst').value; bootstrap.Modal.getInstance(document.getElementById('bulkModal')).hide(); document.getElementById('overlay').style.display = 'flex'; google.script.run.withSuccessHandler(res => { document.getElementById('overlay').style.display = 'none'; selectedOrderIds.clear(); updateBulkBar(); loadData(); showMsg("Success", res); }).bulkUpdateOrders(Array.from(selectedOrderIds), dateEst); }
+      function duplicateOrder(id) { const o = globalData.orders.find(x => x.id == id); editOrder(id); document.getElementById('editingOrderId').value = ""; document.getElementById('formTitle').innerText = "Duplicate Order"; document.getElementById('submitBtn').innerText = "SUBMIT NEW REQUEST"; document.getElementById('cancelEditBtn').style.display = "none"; }
+      function editOrder(id) { const o = globalData.orders.find(x => x.id == id); document.getElementById('formSupplier').value = o.supplier; document.getElementById('formLink').value = o.link; document.getElementById('formDesc').value = o.desc; document.getElementById('formCode').value = o.code; if (o.dateNeeded.includes('/')) { const p = o.dateNeeded.split('/'); document.getElementById('formDateNeeded').value = `${p[2]}-${p[1]}-${p[0]}`; } const locSelect = document.getElementById('formLocation'); for (let i = 0; i < locSelect.options.length; i++) { if (locSelect.options[i].value === o.location) { locSelect.selectedIndex = i; break; } } document.getElementById('formQty').value = o.qty; document.getElementById('formUnit').value = o.unitPrice; document.getElementById('formTotal').value = o.totalPrice; document.getElementById('editingOrderId').value = id; document.getElementById('formTitle').innerText = "Edit Order"; document.getElementById('submitBtn').innerText = "UPDATE"; document.getElementById('cancelEditBtn').style.display = "inline-block"; const triggerEl = document.querySelector('#mainTabs button[data-bs-target="#tabNew"]'); new bootstrap.Tab(triggerEl).show(); }
+      function cancelEdit() { document.getElementById('formSupplier').value = ""; document.getElementById('formDesc').value = ""; document.getElementById('formTotal').value = ""; document.getElementById('editingOrderId').value = ""; document.getElementById('cancelEditBtn').style.display = "none"; document.getElementById('formTitle').innerText = "Create Order Request"; document.getElementById('submitBtn').innerText = "SUBMIT"; const triggerEl = document.querySelector('#mainTabs button[data-bs-target="#tabList"]'); new bootstrap.Tab(triggerEl).show(); }
+      function showErr(m) { document.getElementById('spinner').style.display = 'none'; document.getElementById('errorBox').style.display = 'block'; document.getElementById('errorMsg').innerText = m; }
+      function calcTotal() { const q = parseFloat(document.getElementById('formQty').value) || 0; const u = parseFloat(document.getElementById('formUnit').value) || 0; const t = (q * u).toFixed(2); document.getElementById('formTotal').value = t; document.getElementById('budgetWarning').style.display = (currentBudgetLimit && t > currentBudgetLimit) ? 'block' : 'none'; }
+      function updateRows(v) { rowsPerPage = parseInt(v); renderApp(true); }
+      function changePage(d) { currentPage += d; renderApp(false); }
+      function clearFilters() { document.getElementById('searchText').value = ""; renderApp(true); }
+      function closeSuccess() { bootstrap.Modal.getInstance(document.getElementById('successModal')).hide(); cancelEdit(); loadData(); }
+      function openFinance(id) { document.getElementById('finId').value = id; const o = globalData.orders.find(x => x.id == id); document.getElementById('finFinalPrice').value = o.finalPrice; document.getElementById('finCategory').value = o.category || ""; new bootstrap.Modal(document.getElementById('financeModal')).show(); }
+      function saveFinance() { document.getElementById('overlay').style.display = 'flex'; google.script.run.withSuccessHandler(() => { document.getElementById('overlay').style.display = 'none'; bootstrap.Modal.getInstance(document.getElementById('financeModal')).hide(); loadData(); }).updateOrder(document.getElementById('finId').value, document.getElementById('finDateEst').value, document.getElementById('finFinalPrice').value, document.getElementById('finMessage').value, document.getElementById('finCategory').value); }
+      function openNotes(id) { const o = globalData.orders.find(x => x.id == id); document.getElementById('noteId').value = id; document.getElementById('chatHistory').innerText = o.notes || "No notes."; new bootstrap.Modal(document.getElementById('notesModal')).show(); }
+      function sendNote() {
+         const txt = document.getElementById('newNoteText').value;
+         if (!txt) return;
+
+         const btn = document.getElementById('btnSendNote');
+         const originalText = btn.innerText;
+         btn.disabled = true;
+         btn.innerText = "Sending...";
+
+         google.script.run.withSuccessHandler(() => {
+            document.getElementById('newNoteText').value = "";
+            bootstrap.Modal.getInstance(document.getElementById('notesModal')).hide();
+            // Reset button state after modal closes (ready for next time)
+            btn.disabled = false;
+            btn.innerText = originalText;
+            loadData();
+         }).withFailureHandler((e) => {
+            showMsg("Error", "Failed to send note: " + e);
+            btn.disabled = false;
+            btn.innerText = originalText;
+         }).addNote(document.getElementById('noteId').value, txt);
+      }
+      function sendNote() {
+         const txt = document.getElementById('newNoteText').value;
+         if (!txt) return;
+
+         const btn = document.getElementById('btnSendNote');
+         const originalText = btn.innerText;
+         btn.disabled = true;
+         btn.innerText = "Sending...";
+
+         google.script.run.withSuccessHandler(() => {
+            document.getElementById('newNoteText').value = "";
+            bootstrap.Modal.getInstance(document.getElementById('notesModal')).hide();
+            // Reset button state after modal closes (ready for next time)
+            btn.disabled = false;
+            btn.innerText = originalText;
+            loadData();
+         }).withFailureHandler((e) => {
+            showMsg("Error", "Failed to send note: " + e);
+            btn.disabled = false;
+            btn.innerText = originalText;
+         }).addNote(document.getElementById('noteId').value, txt);
+      }
+
+      // --- SORTING LOGIC ---
+      let currentSort = { field: 'dateReq', dir: 'desc' }; // Default sort
+      function sortBy(field) {
+         if (currentSort.field === field) {
+            currentSort.dir = (currentSort.dir === 'asc') ? 'desc' : 'asc';
+         } else {
+            currentSort.field = field;
+            currentSort.dir = 'asc'; // New field starts asc
+         }
+         renderApp(false);
+         updateSortIcons();
+      }
+
+      function updateSortIcons() {
+         const icons = document.querySelectorAll('[id^=sortIcon_]');
+         icons.forEach(i => i.className = "bi bi-arrow-down-up small text-muted"); // Reset
+
+         const activeIcon = document.getElementById(`sortIcon_${currentSort.field}`);
+         if (activeIcon) {
+            activeIcon.className = (currentSort.dir === 'asc') ? "bi bi-arrow-up text-primary fw-bold" : "bi bi-arrow-down text-primary fw-bold";
+         }
+      }
+
+      function openDetails(id) {
+         const o = globalData.orders.find(x => x.id == id);
+         if (!o) return;
+
+         const safeVal = (v) => v || "-";
+         const displayCost = (o.finalPrice !== "" && o.finalPrice != null) ? formatCurrency(o.finalPrice) : formatCurrency(o.totalPrice);
+
+         let html = `
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="small fw-bold text-muted">Description</label>
+                    <div class="p-2 bg-white border rounded">${o.desc}</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="small fw-bold text-muted">Supplier</label>
+                    <div class="p-2 bg-white border rounded">${getSafeLink(o.link, o.supplier)}</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="small fw-bold text-muted">Quantity</label>
+                    <div class="p-2 bg-white border rounded">${o.qty}</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="small fw-bold text-muted">Unit Price</label>
+                    <div class="p-2 bg-white border rounded">${formatCurrency(o.unitPrice)}</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="small fw-bold text-muted">Total / Final Cost</label>
+                    <div class="p-2 bg-light border rounded fw-bold text-primary">${displayCost}</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="small fw-bold text-muted">Requested By</label>
+                    <div class="p-2 bg-white border rounded">${o.requester}</div>
+                </div>
+                 <div class="col-md-6">
+                    <label class="small fw-bold text-muted">Department</label>
+                    <div class="p-2 bg-white border rounded">${o.dept}</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="small fw-bold text-muted">Date Requested</label>
+                    <div class="p-2 bg-white border rounded">${o.dateReq}</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="small fw-bold text-muted">Date Needed</label>
+                    <div class="p-2 bg-white border rounded">${safeVal(o.dateNeeded)}</div>
+                </div>
+                 <div class="col-md-6">
+                    <label class="small fw-bold text-muted">Date Ordered</label>
+                    <div class="p-2 bg-white border rounded">${safeVal(o.dateOrdered)}</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="small fw-bold text-muted">Expected Delivery</label>
+                    <div class="p-2 bg-white border rounded">${safeVal(o.expectedDate)}</div>
+                </div>
+                <div class="col-12">
+                    <label class="small fw-bold text-muted">Location / Notes</label>
+                    <div class="p-2 bg-white border rounded">${safeVal(o.location)}</div>
+                </div>
+                 <div class="col-12">
+                    <label class="small fw-bold text-muted">Attachment</label>
+                    <div class="p-2 bg-white border rounded">${o.attachment ? getSafeLink(o.attachment, "View Attachment") : "None"}</div>
+                </div>
+                ${o.notes ? `<div class="col-12 mt-3"><label class="small fw-bold text-muted">Message History</label><div class="p-3 bg-light border rounded small" style="white-space:pre-wrap;">${o.notes}</div></div>` : ''}
+            </div>
+          `;
+
+         document.getElementById('detailsBody').innerHTML = html;
+         new bootstrap.Modal(document.getElementById('detailsModal')).show();
+      }
+
+      function cancelOrder(id) {
+         document.getElementById('cancelOrderId').value = id;
+         document.getElementById('cancelReason').value = "";
+         new bootstrap.Modal(document.getElementById('cancelReasonModal')).show();
+      }
+
+      function confirmCancel() {
+         const id = document.getElementById('cancelOrderId').value;
+         const reason = document.getElementById('cancelReason').value;
+
+         if (!reason || reason.trim().length < 3) {
+            alert("Please provide a reason.");
+            return;
+         }
+
+         bootstrap.Modal.getInstance(document.getElementById('cancelReasonModal')).hide();
+         document.getElementById('overlay').style.display = 'flex';
+
+         google.script.run.withSuccessHandler(() => {
+            document.getElementById('overlay').style.display = 'none';
+            loadData();
+         }).userCancelOrder(id, reason);
+      }
+      function exportMasterReport() { showConfirm("Master Export", "Generate full multi-tab report?<br>Only completed items.", () => { const wb = XLSX.utils.book_new(); const allOrders = globalData.orders.filter(o => o.status === "Ordered" && !o.desc.includes("CANCELLED")); if (allOrders.length === 0) { showMsg("No Data", "No completed orders found."); return; } const depts = [...new Set(allOrders.map(o => o.dept))].sort(); depts.forEach(d => { const deptOrders = allOrders.filter(o => o.dept === d); if (deptOrders.length > 0) { const ws = XLSX.utils.json_to_sheet(formatForExcel(deptOrders)); const safeName = d.substring(0, 30).replace(/[\/\\\?\*\[\]]/g, "_"); XLSX.utils.book_append_sheet(wb, ws, safeName); } }); XLSX.writeFile(wb, `Finance_Master_Report_${new Date().toISOString().slice(0, 10)}.xlsx`); }); }
+      function formatForExcel(orders) { return orders.map(o => ({ "Date": o.dateReq, "Dept": o.dept, "Item": o.desc, "Cost": o.finalPrice || o.totalPrice, "Supplier": o.supplier, "Category": o.category || "" })); }
+      function exportData() { if (filteredOrders.length === 0) { showMsg("Error", "No data to export."); return; } const ws = XLSX.utils.json_to_sheet(formatForExcel(filteredOrders)); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Orders"); XLSX.writeFile(wb, "Orders_Export.xlsx"); }
+      function openSimulation() {
+         showProcessing("Accessing Directory...");
+         google.script.run.withSuccessHandler(list => {
+            stopLoading();
+            const select = document.getElementById('simSelect');
+            select.innerHTML = "";
+            list.forEach(email => { select.add(new Option(email, email)); });
+            new bootstrap.Modal(document.getElementById('simModal')).show();
+         }).getSimulationTargets();
+      }
+      function confirmSimulation() {
+         const target = document.getElementById('simSelect').value;
+         const modalEl = document.getElementById('simModal');
+         bootstrap.Modal.getInstance(modalEl).hide();
+
+         showProcessing("Switching View...");
+
+         google.script.run.withSuccessHandler(() => {
+            loadData();
+         }).setSimulation(target);
+      }
+      function revertSimulation() {
+         showProcessing("Exiting Simulation...");
+
+         google.script.run.withSuccessHandler(() => {
+            loadData();
+         }).setSimulation(null);
+      }
+
+      // --- DYNAMIC TOOLTIP LOGIC ---
+      function attachTooltipListeners() {
+         const tooltip = document.getElementById('dynamicTooltip');
+         const label = document.getElementById('tooltipLabel');
+         const bars = document.querySelectorAll('.progress-bar');
+
+         bars.forEach(bar => {
+            // Remove old listeners to prevent duplication (clone node trick or just overwrite)
+            // Simple "on" assignment is safer for repeated calls
+            bar.onmouseenter = (e) => {
+               const text = bar.getAttribute('data-label');
+               const val = bar.getAttribute('data-val');
+               if (!text || !val) return;
+
+               label.innerText = `${text}: ${val}`;
+               tooltip.style.display = 'block';
+               tooltip.style.opacity = '1';
+            };
+
+            bar.onmousemove = (e) => {
+               // Offset slightly so it doesn't block cursor
+               tooltip.style.left = e.clientX + 'px';
+               tooltip.style.top = e.clientY + 'px';
+            };
+
+            bar.onmouseleave = () => {
+               tooltip.style.display = 'none';
+               tooltip.style.opacity = '0';
+            };
+         });
+      }
+   </script>
+
+   <!-- Hidden Tooltip Element -->
+   <div id="dynamicTooltip" class="custom-tooltip">
+      <span id="tooltipLabel"></span>
+   </div>
+</body>
+
+</html>

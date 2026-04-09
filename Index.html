@@ -505,9 +505,53 @@
          color: white;
       }
 
+      .badge-processed {
+         background-color: #0d6efd;
+         color: white;
+      }
+
       .badge-pending {
          background-color: var(--brand-yellow);
          color: #000;
+      }
+
+      .badge-invoice {
+         background-color: #cff4fc;
+         color: #055160;
+         border: 1px solid #9eeaf9;
+      }
+
+      [data-theme="dark"] .badge-invoice {
+         background-color: rgba(13, 202, 240, 0.18);
+         color: #9eeaf9;
+         border-color: rgba(13, 202, 240, 0.35);
+      }
+
+      .cost-difference-value {
+         color: #b54708;
+         font-weight: 700;
+         text-decoration: underline dotted;
+         text-underline-offset: 2px;
+         cursor: help;
+      }
+
+      [data-theme="dark"] .cost-difference-value {
+         color: #ffcc80;
+      }
+
+      .description-truncate {
+         display: inline-block;
+         max-width: 260px;
+         overflow: hidden;
+         text-overflow: ellipsis;
+         white-space: nowrap;
+         vertical-align: bottom;
+      }
+
+      @media (max-width: 768px) {
+         .description-truncate {
+            max-width: 180px;
+         }
       }
 
       .btn-note {
@@ -552,6 +596,30 @@
       .table-hover tbody tr.row-over-budget:hover td {
          background-color: rgba(220, 53, 69, 0.15) !important;
          color: var(--text-main) !important;
+      }
+
+      .row-transfer td {
+         background-color: #fdeaea !important;
+         color: #842029 !important;
+      }
+
+      .row-transfer {
+         border-left: 4px solid #dc3545 !important;
+      }
+
+      .table-hover tbody tr.row-transfer:hover td {
+         background-color: #f8d7da !important;
+         color: #58151c !important;
+      }
+
+      [data-theme="dark"] .row-transfer td {
+         background-color: rgba(220, 53, 69, 0.18) !important;
+         color: #f8d7da !important;
+      }
+
+      [data-theme="dark"] .table-hover tbody tr.row-transfer:hover td {
+         background-color: rgba(220, 53, 69, 0.25) !important;
+         color: #fff5f5 !important;
       }
 
       /* Footer */
@@ -732,7 +800,7 @@
          z-index: 10000;
          background: rgba(33, 37, 41, 0.95);
          color: #fff;
-         padding: 6px 12px;
+         padding: 8px 12px;
          border-radius: 6px;
          font-size: 0.85rem;
          pointer-events: none;
@@ -740,9 +808,10 @@
          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
          font-weight: 500;
          border: 1px solid rgba(255, 255, 255, 0.1);
-         transform: translate(-50%, -130%);
-         /* Center above cursor */
-         white-space: nowrap;
+         max-width: min(420px, calc(100vw - 32px));
+         line-height: 1.4;
+         white-space: normal;
+         word-break: break-word;
       }
    </style>
 </head>
@@ -818,6 +887,8 @@
                   </li>
                   <li><a class="dropdown-item" id="ddExport" href="javascript:void(0)" onclick="exportMasterReport()"><i
                            class="bi bi-file-earmark-excel me-2"></i>Export Full Report</a></li>
+                  <li><a class="dropdown-item" id="ddTransfer" href="javascript:void(0)" onclick="openBudgetTransfer()"><i
+                           class="bi bi-arrow-left-right me-2"></i>Budget Transfer</a></li>
                   <li><a class="dropdown-item" id="ddSheet"
                         href="https://docs.google.com/spreadsheets/d/1nUhtnywmnibXPmQNBM78aYVf03BHj3trw-pIHe3ZO34/edit"
                         target="_blank"><i class="bi bi-table me-2"></i>Open Master Sheet</a></li>
@@ -975,6 +1046,8 @@
                                     class="bi bi-arrow-down-up small text-muted"></i></th>
                               <th class="sortable" onclick="sortBy('supplier')">Supplier <i id="sortIcon_supplier"
                                     class="bi bi-arrow-down-up small text-muted"></i></th>
+                              <th class="sortable" onclick="sortBy('location')">Location <i id="sortIcon_location"
+                                    class="bi bi-arrow-down-up small text-muted"></i></th>
                               <th class="sortable" onclick="sortBy('totalPrice')">Cost <i id="sortIcon_totalPrice"
                                     class="bi bi-arrow-down-up small text-muted"></i></th>
                               <th class="sortable" onclick="sortBy('status')">Status <i id="sortIcon_status"
@@ -1114,12 +1187,12 @@
                               <label class="small fw-bold">Upload Invoice/File(s)</label>
                               <input type="file" class="form-control" id="invFiles" multiple>
                            </div>
-                           <div class="col-12 mt-4 text-end d-grid gap-2 d-md-block">
-                              <button type="button" class="btn btn-outline-success me-md-2"
-                                 onclick="saveLogInvoice(true)">Save & Add Another</button>
-                              <button type="button" class="btn btn-success px-4" onclick="saveLogInvoice(false)">Save &
-                                 Close</button>
-                           </div>
+                            <div class="col-12 mt-4 text-end d-grid gap-2 d-md-block">
+                               <button type="button" class="btn btn-outline-success me-md-2" id="btnInvoiceAddAnother"
+                                  onclick="saveLogInvoice(true)">Save & Add Another</button>
+                               <button type="button" class="btn btn-success px-4" id="btnInvoiceSaveClose" onclick="saveLogInvoice(false)">Save &
+                                  Close</button>
+                            </div>
                         </div>
                      </div>
                   </div>
@@ -1183,6 +1256,40 @@
             </div>
             <div class="modal-footer"><button class="btn btn-primary w-100" onclick="saveFinance()">Update
                   Status</button></div>
+         </div>
+      </div>
+   </div>
+   <div class="modal fade" id="budgetTransferModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+         <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger-subtle">
+               <h5 class="modal-title text-danger-emphasis"><i class="bi bi-arrow-left-right me-2"></i>Budget Transfer</h5>
+               <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+               <p class="text-muted mb-3">Move available budget from one department to another. This action is applied immediately and recorded in the orders list.</p>
+               <div class="row g-3">
+                  <div class="col-md-4">
+                     <label class="small fw-bold text-muted">Amount</label>
+                     <input type="number" step="0.01" min="0.01" class="form-control" id="transferAmount">
+                  </div>
+                  <div class="col-md-4">
+                     <label class="small fw-bold text-muted">From Department</label>
+                     <select class="form-select" id="transferFromDept"></select>
+                  </div>
+                  <div class="col-md-4">
+                     <label class="small fw-bold text-muted">To Department</label>
+                     <select class="form-select" id="transferToDept"></select>
+                  </div>
+               </div>
+               <div class="alert alert-danger mt-4 mb-0 small">
+                  Transfer rows will be highlighted in red so staff can see that the budget movement has already been processed.
+               </div>
+            </div>
+            <div class="modal-footer">
+               <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+               <button type="button" class="btn btn-danger" onclick="saveBudgetTransfer()">Apply Transfer</button>
+            </div>
          </div>
       </div>
    </div>
@@ -1345,6 +1452,151 @@
          return num.toLocaleString('en-GB', { style: 'currency', currency: 'GBP' });
       }
 
+      function isCompletedOrder(order) {
+         return !!(order && (order.isCompleted || order.status === "Ordered" || order.status === "Processed"));
+      }
+
+      function isInvoiceOrder(order) {
+         return !!(order && (order.recordType || "Order") === "Invoice");
+      }
+
+      function parseOrderMoney(value) {
+         if (typeof value === 'number') return value;
+         if (value === null || value === undefined || value === "") return NaN;
+         const cleaned = value.toString().replace(/[^0-9.-]/g, "");
+         return parseFloat(cleaned);
+      }
+
+      function hasPriceDifference(order) {
+         if (!order) return false;
+         const originalCost = parseOrderMoney(order.totalPrice);
+         const finalCost = parseOrderMoney(order.finalPrice);
+
+         if (!Number.isFinite(originalCost) || !Number.isFinite(finalCost)) return false;
+         return Math.abs(finalCost - originalCost) >= 0.005;
+      }
+
+      function escapeTooltipText(text) {
+         return String(text || "")
+            .replace(/&/g, "&amp;")
+            .replace(/"/g, "&quot;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+      }
+
+      function getBudgetTransferDepartments() {
+         return Object.keys(globalData.budgets || {}).sort((a, b) => a.localeCompare(b));
+      }
+
+      function parseMoneyValue(value) {
+         if (typeof value === 'number') return value;
+         if (value === null || value === undefined) return NaN;
+         const cleaned = value.toString().replace(/[^0-9.-]/g, "");
+         return parseFloat(cleaned);
+      }
+
+      function getRemainingBudgetForDept(dept) {
+         const budget = globalData.budgets?.[dept];
+         if (!budget) return 0;
+
+         const explicitRemaining = parseMoneyValue(budget.remaining);
+         if (Number.isFinite(explicitRemaining)) return explicitRemaining;
+
+         const total = parseMoneyValue(budget.total);
+         if (!Number.isFinite(total)) return 0;
+
+         const deptOrders = (globalData.orders || []).filter(o => o.dept === dept && !o.desc.includes("CANCELLED"));
+         const spent = deptOrders.filter(o => isCompletedOrder(o))
+            .reduce((sum, o) => sum + (parseFloat(o.finalPrice || o.totalPrice) || 0), 0);
+         const committed = deptOrders.filter(o => o.status === "Pending")
+            .reduce((sum, o) => sum + (parseFloat(o.totalPrice) || 0), 0);
+
+         return total - spent - committed;
+      }
+
+      function getTransferFriendlyError(err, amount, fromDept) {
+         const raw = (err && (err.message || err.toString())) ? (err.message || err.toString()) : "";
+         const sourceBudget = getRemainingBudgetForDept(fromDept);
+
+         if (raw.includes("Transfer amount exceeds the available remaining budget for the source department.")) {
+            return `You can't transfer ${formatCurrency(amount)} from ${fromDept} because only ${formatCurrency(sourceBudget)} is available to move.`;
+         }
+
+         if (raw.includes("Only departments with live budgets can be used for transfers.")) {
+            return "Please choose departments that currently have a live budget.";
+         }
+
+         if (raw.includes("Transfer departments must be different.")) {
+            return "Choose two different departments for the transfer.";
+         }
+
+         if (raw.includes("Transfer amount must be greater than zero.")) {
+            return "Enter an amount greater than zero.";
+         }
+
+         if (raw.includes("Please choose both departments.")) {
+            return "Please choose both the source and destination departments.";
+         }
+
+         return "The budget transfer could not be completed. Please check the amount and departments, then try again.";
+      }
+
+      function populateBudgetTransferModal() {
+         const departments = getBudgetTransferDepartments();
+         const fromSelect = document.getElementById('transferFromDept');
+         const toSelect = document.getElementById('transferToDept');
+
+         fromSelect.innerHTML = "<option value=''>-- Select --</option>";
+         toSelect.innerHTML = "<option value=''>-- Select --</option>";
+
+         departments.forEach(dept => {
+            const remaining = getRemainingBudgetForDept(dept);
+            const label = `${dept} (${formatCurrency(remaining)} remaining)`;
+            if (remaining > 0) fromSelect.add(new Option(label, dept));
+            toSelect.add(new Option(label, dept));
+         });
+
+         Array.from(fromSelect.options).forEach(opt => {
+            if (opt.value && getRemainingBudgetForDept(opt.value) <= 0) opt.remove();
+         });
+
+         if (fromSelect.options.length === 1) {
+            fromSelect.options[0].text = "-- No Departments Available --";
+         }
+
+         document.getElementById('transferAmount').value = "";
+      }
+
+      function openBudgetTransfer() {
+         populateBudgetTransferModal();
+         new bootstrap.Modal(document.getElementById('budgetTransferModal')).show();
+      }
+
+      function saveBudgetTransfer() {
+         const amount = parseFloat(document.getElementById('transferAmount').value);
+         const fromDept = document.getElementById('transferFromDept').value;
+         const toDept = document.getElementById('transferToDept').value;
+
+         if (!amount || amount <= 0) { showMsg("Error", "Please enter a valid transfer amount."); return; }
+         if (!fromDept || !toDept) { showMsg("Error", "Please choose both departments."); return; }
+         if (fromDept === toDept) { showMsg("Error", "The source and destination departments must be different."); return; }
+
+         document.getElementById('overlay').style.display = 'flex';
+         google.script.run.withSuccessHandler(res => {
+            document.getElementById('overlay').style.display = 'none';
+            bootstrap.Modal.getInstance(document.getElementById('budgetTransferModal')).hide();
+            loadData();
+            showMsg("Success", res);
+         }).withFailureHandler(err => {
+            document.getElementById('overlay').style.display = 'none';
+            showMsg("Transfer Not Applied", getTransferFriendlyError(err, amount, fromDept));
+         }).createBudgetTransfer({
+            amount: amount,
+            fromDept: fromDept,
+            toDept: toDept
+         });
+      }
+
       function getSafeLink(url, supplier) {
          if (!url || url.length < 3) return supplier;
          let val = url.trim();
@@ -1475,14 +1727,17 @@
 
                const banner = document.getElementById('simBanner');
                const ddSimulate = document.getElementById('ddSimulate');
+               const ddTransfer = document.getElementById('ddTransfer');
 
                if (currentUser.isSimulated) {
                   banner.style.display = 'flex';
                   document.getElementById('simTargetName').innerText = currentUser.email;
                   if (ddSimulate) ddSimulate.style.display = 'none';
+                  if (ddTransfer) ddTransfer.style.display = 'none';
                } else {
                   banner.style.display = 'none';
                   if (ddSimulate) ddSimulate.style.display = (currentUser.realRole === "Admin") ? 'block' : 'none';
+                  if (ddTransfer) ddTransfer.style.display = (currentUser.realRole === "Admin") ? 'block' : 'none';
                }
 
                document.getElementById('userDisplay').innerText = currentUser.email;
@@ -1506,6 +1761,7 @@
          const settingsDropdown = document.getElementById('settingsDropdown');
          const directThemeToggle = document.getElementById('directThemeToggle');
          const invDept = document.getElementById('invDept');
+         const navLogInvoice = document.getElementById('navLogInvoice');
 
          // Logic to switch between Gear Dropdown (Admin) and Simple Toggle (Staff)
 
@@ -1527,8 +1783,10 @@
             const showAdminTools = !currentUser.isSimulated;
             const ddSheet = document.getElementById('ddSheet');
             const ddExport = document.getElementById('ddExport');
+            const ddTransfer = document.getElementById('ddTransfer');
             if (ddSheet) ddSheet.style.display = showAdminTools ? 'block' : 'none';
             if (ddExport) ddExport.style.display = showAdminTools ? 'block' : 'none';
+            if (ddTransfer) ddTransfer.style.display = showAdminTools ? 'block' : 'none';
          } else {
             settingsDropdown.style.display = 'none';
             directThemeToggle.style.display = 'block';
@@ -1537,22 +1795,22 @@
          deptFilter.innerHTML = "";
          invDept.innerHTML = "<option value=''>-- Select --</option>";
          let showFilter = false;
+         let invoiceDepts = [];
 
          // Use the calculated View mode (which respects simulation)
          if (isAdminView) {
             showFilter = true;
             document.getElementById('filterLabel').innerText = "FINANCE VIEW:";
-            document.getElementById('navLogInvoice').style.display = "block";
 
             deptFilter.add(new Option("All Departments", "All"));
-            const allDepts = [...new Set([...Object.keys(globalData.budgets), ...globalData.orders.map(o => o.dept)])].sort();
+            const allDepts = [...new Set([...Object.keys(globalData.budgets), ...globalData.orders.map(o => o.dept)])].filter(Boolean).sort();
+            invoiceDepts = allDepts.slice();
             allDepts.forEach(d => {
                deptFilter.add(new Option(d, d));
-               if (globalData.budgets[d]) invDept.add(new Option(d, d));
             });
          } else {
             // STAFF
-            document.getElementById('navLogInvoice').style.display = "none";
+            invoiceDepts = [...new Set((currentUser.depts || []).filter(Boolean))].sort();
 
             // --- SMART HIDE LOGIC ---
             // Fix: Check for null/empty depts
@@ -1565,6 +1823,9 @@
                // The single dept is effectively already "selected" by default
             }
          }
+
+         navLogInvoice.style.display = invoiceDepts.length ? "block" : "none";
+         invoiceDepts.forEach(d => invDept.add(new Option(d, d)));
 
          filterCard.style.display = showFilter ? "flex" : "none";
          document.getElementById('deptOverride').style.display = showFilter ? "block" : "none";
@@ -1648,8 +1909,8 @@
          filteredOrders = globalData.orders.filter(o => {
             if (activeView !== 'All' && o.dept !== activeView) return false;
             const isCancelled = o.desc.includes("CANCELLED");
-            const isOrdered = (o.status === "Ordered");
-            if (pendingOnly && (isOrdered || isCancelled)) return false;
+            const isCompleted = isCompletedOrder(o);
+            if (pendingOnly && (isCompleted || isCancelled)) return false;
             if (searchText && !Object.values(o).some(v => String(v).toLowerCase().includes(searchText))) return false;
             if (dFrom || dTo) {
                let parts = o.dateReq.split('/');
@@ -1703,9 +1964,9 @@
             const b = globalData.budgets[activeView];
             budgetTitle.innerText = activeView + " - Budget Overview"; // Updated Title
 
-            // Calc Spent (Status=Ordered) and Committed (Status=Pending) for THIS department
+            // Calc Spent (completed) and Committed (pending) for THIS department
             const deptOrders = globalData.orders.filter(o => o.dept === activeView && !o.desc.includes("CANCELLED"));
-            const spent = deptOrders.filter(o => o.status === "Ordered")
+            const spent = deptOrders.filter(o => isCompletedOrder(o))
                .reduce((sum, o) => sum + (parseFloat(o.finalPrice || o.totalPrice) || 0), 0);
             const committed = deptOrders.filter(o => o.status === "Pending")
                .reduce((sum, o) => sum + (parseFloat(o.totalPrice) || 0), 0);
@@ -1811,7 +2072,10 @@
 
          document.getElementById('zeroState').classList.toggle('d-none', filteredOrders.length > 0);
          document.getElementById('paginationBar').style.display = filteredOrders.length ? 'flex' : 'none';
-         if (!filteredOrders.length) return;
+         if (!filteredOrders.length) {
+            attachTooltipListeners();
+            return;
+         }
 
          const startIdx = (currentPage - 1) * rowsPerPage;
          const ordersToDraw = filteredOrders.slice(startIdx, startIdx + parseInt(rowsPerPage));
@@ -1825,7 +2089,7 @@
             // 1. Calculate Spent per Dept (Live from orders to be consistent)
             const deptSpent = {};
             globalData.orders.forEach(o => {
-               if (o.status === 'Ordered') {
+               if (isCompletedOrder(o)) {
                   const cost = parseFloat(o.finalPrice || o.totalPrice) || 0;
                   deptSpent[o.dept] = (deptSpent[o.dept] || 0) + cost;
                }
@@ -1842,13 +2106,15 @@
          let pendingVisible = false;
 
          ordersToDraw.forEach(o => {
-            const isOrdered = o.status === "Ordered";
+            const isCompleted = isCompletedOrder(o);
             const isCancelled = o.desc.includes("CANCELLED");
+            const isTransfer = o.recordType === "Transfer";
+            const isInvoice = isInvoiceOrder(o);
 
             // --- BUDGET CHECK ---
             let isOverBudgetRisk = false;
             // Only evaluate Pending items that are not cancelled
-            if (!isOrdered && !isCancelled && isAdmin) {
+            if (!isCompleted && !isCancelled && isAdmin) {
                const d = o.dept;
                if (budgetFlags[d] !== undefined) {
                   const cost = parseFloat(o.totalPrice) || 0;
@@ -1862,11 +2128,15 @@
                }
             }
 
-            if (!isOrdered && !isCancelled) pendingVisible = true;
+            if (!isCompleted && !isCancelled && !isTransfer) pendingVisible = true;
 
-            let badge = isOrdered ? `<span class="badge badge-ordered">Ordered</span>` : `<span class="badge badge-pending">Pending</span>`;
+            let badge = isCompleted
+               ? `<span class="badge ${isInvoice ? 'badge-processed' : 'badge-ordered'}">${isInvoice ? 'Processed' : 'Ordered'}</span>`
+               : `<span class="badge badge-pending">Pending</span>`;
             if (isCancelled) badge = `<span class="badge bg-secondary">Cancelled</span>`;
-            if (isOrdered && o.expectedDate) badge += `<div class="small text-muted mt-1">Est: ${o.expectedDate}</div>`;
+            if (isTransfer) badge = `<span class="badge bg-danger">Transfer</span><div class="small text-muted mt-1">Applied</div>`;
+            if (isInvoice && !isCancelled && !isTransfer) badge += `<div class="mt-1"><span class="badge badge-invoice">Invoice</span></div>`;
+            if (isCompleted && !isInvoice && o.expectedDate) badge += `<div class="small text-muted mt-1">Est: ${o.expectedDate}</div>`;
 
             // Add Risk indicator
             if (isOverBudgetRisk) {
@@ -1879,32 +2149,46 @@
             // Always show details button
             actions += `<button class="btn btn-sm text-secondary btn-action-icon" title="View Details" onclick="openDetails('${o.id}')"><i class="bi bi-eye-fill"></i></button>`;
 
-            actions += `<button class="btn btn-sm text-success btn-action-icon" title="Duplicate Order" onclick="duplicateOrder('${o.id}')"><i class="bi bi-arrow-repeat"></i></button>`;
+            if (!isTransfer) {
+               actions += `<button class="btn btn-sm text-success btn-action-icon" title="Duplicate Order" onclick="duplicateOrder('${o.id}')"><i class="bi bi-arrow-repeat"></i></button>`;
 
-            if (isAdmin && !isCancelled) {
-               actions += `<button class="btn btn-sm btn-outline-dark btn-action-manage" onclick="openFinance('${o.id}')">Manage</button>`;
+               if (isAdmin && !isCancelled) {
+                  actions += `<button class="btn btn-sm btn-outline-dark btn-action-manage" onclick="openFinance('${o.id}')">Manage</button>`;
+               } else {
+                  actions += `<div class="placeholder-manage"></div>`;
+               }
+
+               if (!isCompleted && !isCancelled && isAdmin) {
+                  actions += `<button class="btn btn-sm text-primary btn-action-icon" onclick="editOrder('${o.id}')"><i class="bi bi-pencil-fill"></i></button>`;
+                  actions += `<button class="btn btn-sm text-danger btn-action-icon" onclick="cancelOrder('${o.id}')"><i class="bi bi-trash-fill"></i></button>`;
+               } else if (!isCompleted && !isCancelled && hasAccess) {
+                  // Requester can Cancel but NOT Edit
+                  actions += `<div class="placeholder-icon"></div>`;
+                  actions += `<button class="btn btn-sm text-danger btn-action-icon" onclick="cancelOrder('${o.id}')"><i class="bi bi-trash-fill"></i></button>`;
+               } else {
+                  actions += `<div class="placeholder-icon"></div>`;
+                  actions += `<div class="placeholder-icon"></div>`;
+               }
             } else {
-               actions += `<div class="placeholder-manage"></div>`;
-            }
-
-            if (!isOrdered && !isCancelled && isAdmin) {
-               actions += `<button class="btn btn-sm text-primary btn-action-icon" onclick="editOrder('${o.id}')"><i class="bi bi-pencil-fill"></i></button>`;
-               actions += `<button class="btn btn-sm text-danger btn-action-icon" onclick="cancelOrder('${o.id}')"><i class="bi bi-trash-fill"></i></button>`;
-            } else if (!isOrdered && !isCancelled && hasAccess) {
-               // Requester can Cancel but NOT Edit
                actions += `<div class="placeholder-icon"></div>`;
-               actions += `<button class="btn btn-sm text-danger btn-action-icon" onclick="cancelOrder('${o.id}')"><i class="bi bi-trash-fill"></i></button>`;
-            } else {
+               actions += `<div class="placeholder-manage"></div>`;
                actions += `<div class="placeholder-icon"></div>`;
                actions += `<div class="placeholder-icon"></div>`;
             }
 
             actions += `</div>`;
 
-            let chk = isAdmin && !isOrdered && !isCancelled ? `<input type="checkbox" class="form-check-input" value="${o.id}" onchange="toggleRow(this)" ${selectedOrderIds.has(String(o.id)) ? 'checked' : ''}>` : "";
+            let chk = isAdmin && !isCompleted && !isCancelled && !isTransfer ? `<input type="checkbox" class="form-check-input" value="${o.id}" onchange="toggleRow(this)" ${selectedOrderIds.has(String(o.id)) ? 'checked' : ''}>` : "";
             let displayCost = (o.finalPrice !== "" && o.finalPrice != null) ? o.finalPrice : o.totalPrice;
+            const showPriceDifference = hasPriceDifference(o);
+            const costDisplayHtml = showPriceDifference
+               ? `<span class="cost-difference-value" data-tooltip-original="${parseOrderMoney(o.totalPrice)}" tabindex="0">${formatCurrency(displayCost)}</span>`
+               : formatCurrency(displayCost);
+            const descriptionText = o.desc || "-";
+            const descriptionTooltipAttr = descriptionText.length > 48 ? ` data-tooltip-text="${escapeTooltipText(descriptionText)}" tabindex="0"` : "";
+            const descriptionDisplayHtml = `<span class="description-truncate"${descriptionTooltipAttr}>${descriptionText}</span>`;
 
-            const rowClass = isOverBudgetRisk ? "row-over-budget" : (isOrdered ? 'bg-light' : '');
+            const rowClass = isTransfer ? "row-transfer" : (isOverBudgetRisk ? "row-over-budget" : (isCompleted ? 'bg-light' : ''));
 
             tbody.innerHTML += `
           <tr class="${rowClass}">
@@ -1912,9 +2196,10 @@
             <td data-label="Date">${o.dateReq}</td>
             <td data-label="Dept"><span class="badge bg-white text-dark border">${o.dept}</span></td>
             <td data-label="Requester"><small>${o.requester.split('@')[0]}</small></td>
-            <td data-label="Description">${o.desc}</td>
+            <td data-label="Description">${descriptionDisplayHtml}</td>
             <td data-label="Supplier">${getSafeLink(o.link, o.supplier)}</td>
-            <td data-label="Cost">${formatCurrency(displayCost)}</td>
+            <td data-label="Location">${o.location || "-"}</td>
+            <td data-label="Cost">${costDisplayHtml}</td>
             <td data-label="Status">${badge}</td>
             <td data-label="Notes" class="text-center"><button class="btn-note ${o.notes ? 'has-notes' : ''}" onclick="openNotes('${o.id}')"><i class="bi ${o.notes ? 'bi-envelope-fill' : 'bi-envelope'}"></i></button></td>
             <td data-label="Actions">${actions}</td>
@@ -1927,6 +2212,8 @@
          } else {
             headerChk.style.visibility = 'none';
          }
+
+         attachTooltipListeners();
       }
 
       function prepLogInvoiceTab() {
@@ -1950,6 +2237,31 @@
 
          return { isValid: true };
       }
+
+      function setInvoiceButtonsSaving(activeButtonId) {
+         const addAnotherBtn = document.getElementById('btnInvoiceAddAnother');
+         const saveCloseBtn = document.getElementById('btnInvoiceSaveClose');
+         [addAnotherBtn, saveCloseBtn].forEach(btn => {
+            if (!btn) return;
+            if (!btn.dataset.defaultText) btn.dataset.defaultText = btn.textContent.trim().replace(/\s+/g, ' ');
+            btn.disabled = true;
+            btn.classList.add('disabled');
+         });
+         const activeButton = document.getElementById(activeButtonId);
+         if (activeButton) activeButton.textContent = "Saving...";
+      }
+
+      function resetInvoiceButtons() {
+         const addAnotherBtn = document.getElementById('btnInvoiceAddAnother');
+         const saveCloseBtn = document.getElementById('btnInvoiceSaveClose');
+         [addAnotherBtn, saveCloseBtn].forEach(btn => {
+            if (!btn) return;
+            btn.disabled = false;
+            btn.classList.remove('disabled');
+            if (btn.dataset.defaultText) btn.textContent = btn.dataset.defaultText;
+         });
+      }
+
       function saveLogInvoice(addAnother) {
          const dept = document.getElementById('invDept').value;
          const supplier = document.getElementById('invSupplier').value;
@@ -1957,6 +2269,7 @@
          const cost = document.getElementById('invCost').value;
          if (!dept || !supplier || !desc || !cost) { showMsg("Error", "Dept, Supplier, Description and Cost are required."); return; }
 
+         setInvoiceButtonsSaving(addAnother ? 'btnInvoiceAddAnother' : 'btnInvoiceSaveClose');
          document.getElementById('overlay').style.display = 'flex';
 
          const filesInput = document.getElementById('invFiles');
@@ -1982,24 +2295,39 @@
                files: fileObjs
             };
 
-            google.script.run.withSuccessHandler(res => {
-               document.getElementById('overlay').style.display = 'none';
-               if (addAnother) {
-                  document.getElementById('invSupplier').value = "";
-                  document.getElementById('invDesc').value = "";
-                  document.getElementById('invCost').value = "";
-                  document.getElementById('invRef').value = "";
-                  document.getElementById('invFiles').value = "";
-                  showMsg("Success", "Invoice logged. Ready for next.");
-               } else {
-                  showMsg("Success", "Invoice logged successfully.");
-                  const tabListBtn = document.querySelector('#mainTabs button[data-bs-target="#tabList"]');
-                  new bootstrap.Tab(tabListBtn).show();
-                  loadData();
-               }
-            }).logInvoice(invData);
-         });
-      }
+             google.script.run.withSuccessHandler(res => {
+                document.getElementById('overlay').style.display = 'none';
+                if (res !== "Invoice Logged") {
+                   resetInvoiceButtons();
+                   showMsg("Error", res || "Invoice log failed.");
+                   return;
+                }
+                if (addAnother) {
+                   document.getElementById('invSupplier').value = "";
+                   document.getElementById('invDesc').value = "";
+                   document.getElementById('invCost').value = "";
+                   document.getElementById('invRef').value = "";
+                   document.getElementById('invFiles').value = "";
+                   resetInvoiceButtons();
+                   showMsg("Success", "Invoice logged. Ready for next.");
+                } else {
+                   resetInvoiceButtons();
+                   showMsg("Success", "Invoice logged successfully.");
+                    const tabListBtn = document.querySelector('#mainTabs button[data-bs-target="#tabList"]');
+                    new bootstrap.Tab(tabListBtn).show();
+                    loadData();
+                 }
+              }).withFailureHandler(err => {
+                 document.getElementById('overlay').style.display = 'none';
+                 resetInvoiceButtons();
+                 showMsg("Error", "Invoice log failed: " + (err && err.message ? err.message : err));
+              }).logInvoice(invData);
+           }).catch(err => {
+              document.getElementById('overlay').style.display = 'none';
+              resetInvoiceButtons();
+              showMsg("Error", "Attachment read failed: " + (err && err.message ? err.message : err));
+           });
+       }
 
       function sendOrder() {
          const supplier = document.getElementById('formSupplier').value;
@@ -2059,8 +2387,56 @@
       function updateBulkBar() { const bar = document.getElementById('bulkActionBar'); const count = selectedOrderIds.size; if (count > 0) { bar.classList.remove('d-none'); bar.classList.add('d-flex'); document.getElementById('bulkCount').innerText = count; } else { bar.classList.add('d-none'); bar.classList.remove('d-flex'); } }
       function openBulkModal() { document.getElementById('bulkModalCount').innerText = selectedOrderIds.size; document.getElementById('bulkDateEst').value = ""; new bootstrap.Modal(document.getElementById('bulkModal')).show(); }
       function confirmBulkUpdate() { const dateEst = document.getElementById('bulkDateEst').value; bootstrap.Modal.getInstance(document.getElementById('bulkModal')).hide(); document.getElementById('overlay').style.display = 'flex'; google.script.run.withSuccessHandler(res => { document.getElementById('overlay').style.display = 'none'; selectedOrderIds.clear(); updateBulkBar(); loadData(); showMsg("Success", res); }).bulkUpdateOrders(Array.from(selectedOrderIds), dateEst); }
-      function duplicateOrder(id) { const o = globalData.orders.find(x => x.id == id); editOrder(id); document.getElementById('editingOrderId').value = ""; document.getElementById('formTitle').innerText = "Duplicate Order"; document.getElementById('submitBtn').innerText = "SUBMIT NEW REQUEST"; document.getElementById('cancelEditBtn').style.display = "none"; }
-      function editOrder(id) { const o = globalData.orders.find(x => x.id == id); document.getElementById('formSupplier').value = o.supplier; document.getElementById('formLink').value = o.link; document.getElementById('formDesc').value = o.desc; document.getElementById('formCode').value = o.code; if (o.dateNeeded.includes('/')) { const p = o.dateNeeded.split('/'); document.getElementById('formDateNeeded').value = `${p[2]}-${p[1]}-${p[0]}`; } const locSelect = document.getElementById('formLocation'); for (let i = 0; i < locSelect.options.length; i++) { if (locSelect.options[i].value === o.location) { locSelect.selectedIndex = i; break; } } document.getElementById('formQty').value = o.qty; document.getElementById('formUnit').value = o.unitPrice; document.getElementById('formTotal').value = o.totalPrice; document.getElementById('editingOrderId').value = id; document.getElementById('formTitle').innerText = "Edit Order"; document.getElementById('submitBtn').innerText = "UPDATE"; document.getElementById('cancelEditBtn').style.display = "inline-block"; const triggerEl = document.querySelector('#mainTabs button[data-bs-target="#tabNew"]'); new bootstrap.Tab(triggerEl).show(); }
+      function selectOrderFormDepartment(dept) {
+         const formDept = document.getElementById('formDept');
+         if (!formDept || !dept) return;
+
+         const hasDeptOption = Array.from(formDept.options).some(opt => opt.value === dept);
+         if (hasDeptOption) formDept.value = dept;
+      }
+
+      function duplicateOrder(id) {
+         editOrder(id);
+         document.getElementById('editingOrderId').value = "";
+         document.getElementById('formTitle').innerText = "Duplicate Order";
+         document.getElementById('submitBtn').innerText = "SUBMIT NEW REQUEST";
+         document.getElementById('cancelEditBtn').style.display = "none";
+      }
+
+      function editOrder(id) {
+         const o = globalData.orders.find(x => x.id == id);
+         if (!o) return;
+
+         document.getElementById('formSupplier').value = o.supplier;
+         document.getElementById('formLink').value = o.link;
+         document.getElementById('formDesc').value = o.desc;
+         document.getElementById('formCode').value = o.code;
+         selectOrderFormDepartment(o.dept);
+
+         if (o.dateNeeded.includes('/')) {
+            const p = o.dateNeeded.split('/');
+            document.getElementById('formDateNeeded').value = `${p[2]}-${p[1]}-${p[0]}`;
+         }
+
+         const locSelect = document.getElementById('formLocation');
+         for (let i = 0; i < locSelect.options.length; i++) {
+            if (locSelect.options[i].value === o.location) {
+               locSelect.selectedIndex = i;
+               break;
+            }
+         }
+
+         document.getElementById('formQty').value = o.qty;
+         document.getElementById('formUnit').value = o.unitPrice;
+         document.getElementById('formTotal').value = o.totalPrice;
+         document.getElementById('editingOrderId').value = id;
+         document.getElementById('formTitle').innerText = "Edit Order";
+         document.getElementById('submitBtn').innerText = "UPDATE";
+         document.getElementById('cancelEditBtn').style.display = "inline-block";
+
+         const triggerEl = document.querySelector('#mainTabs button[data-bs-target="#tabNew"]');
+         new bootstrap.Tab(triggerEl).show();
+      }
       function cancelEdit() { document.getElementById('formSupplier').value = ""; document.getElementById('formDesc').value = ""; document.getElementById('formTotal').value = ""; document.getElementById('editingOrderId').value = ""; document.getElementById('cancelEditBtn').style.display = "none"; document.getElementById('formTitle').innerText = "Create Order Request"; document.getElementById('submitBtn').innerText = "SUBMIT"; const triggerEl = document.querySelector('#mainTabs button[data-bs-target="#tabList"]'); new bootstrap.Tab(triggerEl).show(); }
       function showErr(m) { document.getElementById('spinner').style.display = 'none'; document.getElementById('errorBox').style.display = 'block'; document.getElementById('errorMsg').innerText = m; }
       function calcTotal() { const q = parseFloat(document.getElementById('formQty').value) || 0; const u = parseFloat(document.getElementById('formUnit').value) || 0; const t = (q * u).toFixed(2); document.getElementById('formTotal').value = t; document.getElementById('budgetWarning').style.display = (currentBudgetLimit && t > currentBudgetLimit) ? 'block' : 'none'; }
@@ -2145,12 +2521,17 @@
 
          const safeVal = (v) => v || "-";
          const displayCost = (o.finalPrice !== "" && o.finalPrice != null) ? formatCurrency(o.finalPrice) : formatCurrency(o.totalPrice);
+          const isTransfer = o.recordType === "Transfer";
+          const isInvoice = isInvoiceOrder(o);
+          const invoiceMessage = o.status === "Processed" ? "This invoice has been processed by finance." : "This invoice is waiting for finance processing.";
 
-         let html = `
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <label class="small fw-bold text-muted">Description</label>
-                    <div class="p-2 bg-white border rounded">${o.desc}</div>
+          let html = `
+             <div class="row g-3">
+                  ${isTransfer ? `<div class="col-12"><div class="alert alert-danger mb-0"><strong>Budget transfer record.</strong> This movement has already been applied to departmental budgets.</div></div>` : ""}
+                  ${isInvoice ? `<div class="col-12"><div class="alert alert-info mb-0"><strong>Invoice record.</strong> ${invoiceMessage}</div></div>` : ""}
+                  <div class="col-md-6">
+                      <label class="small fw-bold text-muted">Description</label>
+                      <div class="p-2 bg-white border rounded">${o.desc}</div>
                 </div>
                 <div class="col-md-6">
                     <label class="small fw-bold text-muted">Supplier</label>
@@ -2175,6 +2556,10 @@
                  <div class="col-md-6">
                     <label class="small fw-bold text-muted">Department</label>
                     <div class="p-2 bg-white border rounded">${o.dept}</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="small fw-bold text-muted">Record Type</label>
+                    <div class="p-2 bg-white border rounded">${o.recordType || "Order"}</div>
                 </div>
                 <div class="col-md-6">
                     <label class="small fw-bold text-muted">Date Requested</label>
@@ -2231,7 +2616,7 @@
             loadData();
          }).userCancelOrder(id, reason);
       }
-      function exportMasterReport() { showConfirm("Master Export", "Generate full multi-tab report?<br>Only completed items.", () => { const wb = XLSX.utils.book_new(); const allOrders = globalData.orders.filter(o => o.status === "Ordered" && !o.desc.includes("CANCELLED")); if (allOrders.length === 0) { showMsg("No Data", "No completed orders found."); return; } const depts = [...new Set(allOrders.map(o => o.dept))].sort(); depts.forEach(d => { const deptOrders = allOrders.filter(o => o.dept === d); if (deptOrders.length > 0) { const ws = XLSX.utils.json_to_sheet(formatForExcel(deptOrders)); const safeName = d.substring(0, 30).replace(/[\/\\\?\*\[\]]/g, "_"); XLSX.utils.book_append_sheet(wb, ws, safeName); } }); XLSX.writeFile(wb, `Finance_Master_Report_${new Date().toISOString().slice(0, 10)}.xlsx`); }); }
+       function exportMasterReport() { showConfirm("Master Export", "Generate full multi-tab report?<br>Only completed items.", () => { const wb = XLSX.utils.book_new(); const allOrders = globalData.orders.filter(o => isCompletedOrder(o) && !o.desc.includes("CANCELLED")); if (allOrders.length === 0) { showMsg("No Data", "No completed orders found."); return; } const depts = [...new Set(allOrders.map(o => o.dept))].sort(); depts.forEach(d => { const deptOrders = allOrders.filter(o => o.dept === d); if (deptOrders.length > 0) { const ws = XLSX.utils.json_to_sheet(formatForExcel(deptOrders)); const safeName = d.substring(0, 30).replace(/[\/\\\?\*\[\]]/g, "_"); XLSX.utils.book_append_sheet(wb, ws, safeName); } }); XLSX.writeFile(wb, `Finance_Master_Report_${new Date().toISOString().slice(0, 10)}.xlsx`); }); }
       function formatForExcel(orders) { return orders.map(o => ({ "Date": o.dateReq, "Dept": o.dept, "Item": o.desc, "Cost": o.finalPrice || o.totalPrice, "Supplier": o.supplier, "Category": o.category || "" })); }
       function exportData() { if (filteredOrders.length === 0) { showMsg("Error", "No data to export."); return; } const ws = XLSX.utils.json_to_sheet(formatForExcel(filteredOrders)); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Orders"); XLSX.writeFile(wb, "Orders_Export.xlsx"); }
       function openSimulation() {
@@ -2268,6 +2653,54 @@
          const tooltip = document.getElementById('dynamicTooltip');
          const label = document.getElementById('tooltipLabel');
          const bars = document.querySelectorAll('.progress-bar');
+         const tooltipTargets = document.querySelectorAll('[data-tooltip-text], [data-tooltip-original]');
+
+         const showTooltip = (text) => {
+            if (!text) return;
+            label.innerText = text;
+            tooltip.style.display = 'block';
+            tooltip.style.opacity = '1';
+         };
+
+         const placeTooltip = (x, y) => {
+            const padding = 12;
+            const offset = 16;
+
+            tooltip.style.left = '0px';
+            tooltip.style.top = '0px';
+
+            const rect = tooltip.getBoundingClientRect();
+            let left = x + offset;
+            if (left + rect.width > window.innerWidth - padding) {
+               left = window.innerWidth - rect.width - padding;
+            }
+            if (left < padding) left = padding;
+
+            let top = y - rect.height - offset;
+            if (top < padding) {
+               top = y + offset;
+            }
+            if (top + rect.height > window.innerHeight - padding) {
+               top = Math.max(padding, window.innerHeight - rect.height - padding);
+            }
+
+            tooltip.style.left = `${left}px`;
+            tooltip.style.top = `${top}px`;
+         };
+
+         const moveTooltip = (e) => {
+            placeTooltip(e.clientX, e.clientY);
+         };
+
+         const placeTooltipForElement = (target) => {
+            const rect = target.getBoundingClientRect();
+            placeTooltip(rect.left + (rect.width / 2), rect.top);
+         };
+
+         const hideTooltip = () => {
+            tooltip.style.display = 'none';
+            tooltip.style.opacity = '0';
+         };
 
          bars.forEach(bar => {
             // Remove old listeners to prevent duplication (clone node trick or just overwrite)
@@ -2277,21 +2710,37 @@
                const val = bar.getAttribute('data-val');
                if (!text || !val) return;
 
-               label.innerText = `${text}: ${val}`;
-               tooltip.style.display = 'block';
-               tooltip.style.opacity = '1';
+               showTooltip(`${text}: ${val}`);
+               moveTooltip(e);
             };
 
             bar.onmousemove = (e) => {
-               // Offset slightly so it doesn't block cursor
-               tooltip.style.left = e.clientX + 'px';
-               tooltip.style.top = e.clientY + 'px';
+               moveTooltip(e);
             };
 
-            bar.onmouseleave = () => {
-               tooltip.style.display = 'none';
-               tooltip.style.opacity = '0';
+            bar.onmouseleave = hideTooltip;
+         });
+
+         tooltipTargets.forEach(target => {
+            const getTooltipText = () => {
+               const originalValue = target.getAttribute('data-tooltip-original');
+               if (originalValue !== null && originalValue !== "") {
+                  return `Originally requested: ${formatCurrency(originalValue)}`;
+               }
+               return target.getAttribute('data-tooltip-text');
             };
+
+            target.onmouseenter = (e) => {
+               showTooltip(getTooltipText());
+               moveTooltip(e);
+            };
+            target.onmousemove = moveTooltip;
+            target.onmouseleave = hideTooltip;
+            target.onfocus = () => {
+               showTooltip(getTooltipText());
+               placeTooltipForElement(target);
+            };
+            target.onblur = hideTooltip;
          });
       }
    </script>

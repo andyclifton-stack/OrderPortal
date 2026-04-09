@@ -581,6 +581,10 @@
             });
         }
 
+        function isCompletedOrder(order) {
+            return !!(order && (order.isCompleted || order.status === 'Ordered' || order.status === 'Processed'));
+        }
+
         function updateChartsWithData(data) {
             // --- 1. Budget Chart Logic (Aggregated by Month) ---
             // Initialize 12 buckets for Sep -> Aug
@@ -591,7 +595,7 @@
 
             data.orders.forEach(order => {
                 // "Ordered" status or valid price implies spent
-                if (order.status === 'Ordered') {
+                if (isCompletedOrder(order)) {
                     const dateParts = order.dateOrdered ? order.dateOrdered.split('/') : order.dateReq.split('/'); // dd/mm/yyyy
                     if (dateParts.length === 3) {
                         const monthIndex = parseInt(dateParts[1], 10) - 1; // 0-11
@@ -613,7 +617,7 @@
             // --- 2. Dept Chart Logic ---
             const deptMap = {};
             data.orders.forEach(order => {
-                if (order.status === 'Ordered') {
+                if (isCompletedOrder(order)) {
                     const price = typeof order.finalPrice === 'number' ? order.finalPrice : parseFloat(order.finalPrice.toString().replace(/[^\d.-]/g, '')) || 0;
                     deptMap[order.dept] = (deptMap[order.dept] || 0) + price;
                 }
@@ -633,7 +637,7 @@
         function updateTopSuppliers(orders) {
             const supplierMap = {};
             orders.forEach(order => {
-                if (order.status === 'Ordered') {
+                if (isCompletedOrder(order)) {
                     const price = typeof order.finalPrice === 'number' ? order.finalPrice : parseFloat(order.finalPrice.toString().replace(/[^\d.-]/g, '')) || 0;
                     const name = order.supplier || "Unknown";
                     supplierMap[name] = (supplierMap[name] || 0) + price;
@@ -683,9 +687,13 @@
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-b border-gray-200 dark:border-gray-700 last:border-0';
 
-                const statusColor = order.status === 'Ordered' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' :
-                    order.status === 'Pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' :
-                        'bg-gray-100 text-gray-800';
+                const statusColor = order.status === 'Processed'
+                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
+                    : order.status === 'Ordered'
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+                        : order.status === 'Pending'
+                            ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300'
+                            : 'bg-gray-100 text-gray-800';
 
                 tr.innerHTML = `
                     <td class="px-3 py-2 whitespace-nowrap text-xs text-text-light dark:text-text-dark">${order.dateReq}</td>

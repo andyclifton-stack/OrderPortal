@@ -31,6 +31,73 @@ function getConfig() {
   return { financeEmail: email, senderAlias: alias };
 }
 
+function getBudgetSnapshot_(ss) {
+  const cache = CacheService.getScriptCache();
+  const cachedBudgets = cache.get("budgets_data");
+  if (cachedBudgets) return JSON.parse(cachedBudgets);
+
+  const budgets = {};
+  const budgetSheet = ss.getSheetByName("Budgets");
+  if (budgetSheet) {
+    const bData = budgetSheet.getDataRange().getValues();
+    for (let i = 1; i < bData.length; i++) {
+      if (bData[i][0]) {
+        budgets[bData[i][0]] = {
+          total: Number(bData[i][1]) || 0,
+          spent: Number(bData[i][2]) || 0,
+          remaining: Number(bData[i][3]) || 0
+        };
+      }
+    }
+  }
+
+  cache.put("budgets_data", JSON.stringify(budgets), 600);
+  return budgets;
+}
+
+function clearBudgetCache_() {
+  CacheService.getScriptCache().remove("budgets_data");
+}
+
+function ensureOrdersRecordTypeColumn_(sheet) {
+  const lastColumn = Math.max(sheet.getLastColumn(), 1);
+  const headers = sheet.getRange(1, 1, 1, lastColumn).getValues()[0];
+  let recordTypeColumn = headers.indexOf("Record Type") + 1;
+
+  if (!recordTypeColumn) {
+    sheet.insertColumnAfter(lastColumn);
+    recordTypeColumn = lastColumn + 1;
+    sheet.getRange(1, recordTypeColumn)
+      .setValue("Record Type")
+      .setFontWeight("bold")
+      .setBackground("#f4cccc");
+    sheet.hideColumns(recordTypeColumn);
+  }
+
+  return recordTypeColumn;
+}
+
+function appendOrderRow_(sheet, rowValues, recordType) {
+  const recordTypeColumn = ensureOrdersRecordTypeColumn_(sheet);
+  const finalRow = rowValues.slice();
+  while (finalRow.length < recordTypeColumn) finalRow.push("");
+  finalRow[recordTypeColumn - 1] = recordType || "Order";
+  sheet.appendRow(finalRow);
+}
+
+function getOrderRecordType_(row) {
+  return row[20] || "Order";
+}
+
+function isOrderCompleted_(row) {
+  return !!(row[15] || row[13] || row[14]);
+}
+
+function getOrderStatusLabel_(row, recordType) {
+  if (!isOrderCompleted_(row)) return "Pending";
+  return (recordType || getOrderRecordType_(row)) === "Invoice" ? "Processed" : "Ordered";
+}
+
 function logError(e, context) {
   console.error("Error in " + context + ": " + e.toString());
   try {
@@ -40,6 +107,14 @@ function logError(e, context) {
       body: "Error Details:\n" + e.stack
     });
   } catch (err) { console.log("Failed to email error"); }
+}
+
+function clampEmailSubject_(subject) {
+  const maxLength = 180;
+  const normalized = (String(subject || "").replace(/\s+/g, " ").trim()) || "Portal Notification";
+
+  if (normalized.length <= maxLength) return normalized;
+  return normalized.slice(0, maxLength - 3).trimEnd() + "...";
 }
 
 function sendEmailAlert(to, subject, body, options) {
@@ -58,6 +133,8 @@ function sendEmailAlert(to, subject, body, options) {
                    <small><a href="https://orders.gbclm.co.uk" style="color:#283583; text-decoration:none;">Open Portal</a></small>
                  </div>`
     };
+
+    emailData.subject = clampEmailSubject_(emailData.subject);
 
     // Force Reply-To to noreply to discourage email responses
     emailData.replyTo = "noreply@claremontschool.co.uk";
@@ -82,7 +159,7 @@ function uploadFileToDrive(data, filename, type) {
     }
     const blob = Utilities.newBlob(Utilities.base64Decode(data), type, filename);
     const file = folder.createFile(blob);
-    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    // Rely on the folder's existing domain-sharing policy instead of forcing a broader public link.
     return file.getUrl();
   } catch (e) {
     logError(e, "uploadFileToDrive");
@@ -180,36 +257,16 @@ function getDashboardData() {
   try {
     const user = getUserContext();
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-
-    const cache = CacheService.getScriptCache();
-    let cachedBudgets = cache.get("budgets_data");
-    let budgets = {};
-
-    if (cachedBudgets) {
-      budgets = JSON.parse(cachedBudgets);
-    } else {
-      const budgetSheet = ss.getSheetByName("Budgets");
-      if (budgetSheet) {
-        const bData = budgetSheet.getDataRange().getValues();
-        for (let i = 1; i < bData.length; i++) {
-          if (bData[i][0]) {
-            budgets[bData[i][0]] = {
-              total: Number(bData[i][1]) || 0,
-              spent: Number(bData[i][2]) || 0,
-              remaining: Number(bData[i][3]) || 0
-            };
-          }
-        }
-        cache.put("budgets_data", JSON.stringify(budgets), 600);
-      }
-    }
+    const budgets = getBudgetSnapshot_(ss);
 
     const orderSheet = ss.getSheetByName("Orders");
     const visibleOrders = [];
     if (orderSheet) {
+      const recordTypeColumn = ensureOrdersRecordTypeColumn_(orderSheet);
+      const recordTypeIndex = recordTypeColumn - 1;
       const lastRow = orderSheet.getLastRow();
       if (lastRow > 1) {
-        const allOrders = orderSheet.getRange(2, 1, lastRow - 1, 20).getValues();
+        const allOrders = orderSheet.getRange(2, 1, lastRow - 1, recordTypeColumn).getValues();
 
         const parseUKDate = (d) => {
           if (!d) return "";
@@ -225,6 +282,7 @@ function getDashboardData() {
           const hasAccess = (user.role === "Admin") || (user.depts.includes(row[1]));
 
           if (hasAccess) {
+            const recordType = row[recordTypeIndex] || "Order";
             visibleOrders.push({
               id: row[0],
               dept: row[1],
@@ -245,7 +303,9 @@ function getDashboardData() {
               notes: row[17] || "",
               category: row[18] || "",
               attachment: row[19] || "",
-              status: (row[15] || row[13] || row[14]) ? "Ordered" : "Pending"
+              recordType: recordType,
+              isCompleted: isOrderCompleted_(row),
+              status: getOrderStatusLabel_(row, recordType)
             });
           }
         }
@@ -270,6 +330,7 @@ function extractOrderData(row) {
     } catch (e) { return d; }
   };
 
+  const recordType = getOrderRecordType_(row);
   return {
     id: row[0],
     dept: row[1],
@@ -285,10 +346,12 @@ function extractOrderData(row) {
     location: row[11],
     dateNeeded: formatDate(row[12]),
     finalPrice: row[15],
-    status: (row[15] || row[13] || row[14]) ? "Ordered" : "Pending",
+    isCompleted: isOrderCompleted_(row),
+    status: getOrderStatusLabel_(row, recordType),
     notes: row[17],
     category: row[18],
-    attachment: row[19]
+    attachment: row[19],
+    recordType: recordType
   };
 }
 
@@ -337,6 +400,7 @@ function submitOrder(form) {
     const config = getConfig();
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const sheet = ss.getSheetByName("Orders");
+    ensureOrdersRecordTypeColumn_(sheet);
     const sanitize = (str) => str ? str.toString().replace(/[<>]/g, "") : "";
 
     let id = form.id || Math.floor(Math.random() * 900000) + 100000;
@@ -347,17 +411,8 @@ function submitOrder(form) {
 
     let isOverBudget = false;
     let remainingBudget = 0;
-    const cache = CacheService.getScriptCache();
-    let cachedBudgets = cache.get("budgets_data");
-
-    if (cachedBudgets) {
-      const bObj = JSON.parse(cachedBudgets);
-      if (bObj[deptToLog]) remainingBudget = bObj[deptToLog].remaining;
-    } else {
-      const bSheet = ss.getSheetByName("Budgets");
-      const bData = bSheet.getDataRange().getValues();
-      for (let i = 1; i < bData.length; i++) { if (bData[i][0] === deptToLog) { remainingBudget = bData[i][3]; break; } }
-    }
+    const budgets = getBudgetSnapshot_(ss);
+    if (budgets[deptToLog]) remainingBudget = budgets[deptToLog].remaining;
     if (parseFloat(form.totalPrice) > remainingBudget) isOverBudget = true;
 
     let attachmentUrl = "";
@@ -401,18 +456,18 @@ function submitOrder(form) {
         }
       }
     } else {
-      sheet.appendRow([
+      appendOrderRow_(sheet, [
         id, deptToLog, new Date(), user.email,
         sanitize(form.supplier), sanitize(form.link), sanitize(form.desc), sanitize(form.code),
         form.qty, form.unitPrice, form.totalPrice,
         form.location, form.dateNeeded,
         "", "", "", "", initialNote,
         "", attachmentUrl
-      ]);
+      ], "Order");
     }
 
     SpreadsheetApp.flush();
-    CacheService.getScriptCache().remove("budgets_data");
+    clearBudgetCache_();
 
     // --- CONSTRUCT EMAIL FROM FORM DATA ---
     // We mock the 'order' object structure expected by formatEmailBody
@@ -449,14 +504,107 @@ function submitOrder(form) {
   }
 }
 
+function createBudgetTransfer(form) {
+  try {
+    const user = getUserContext();
+    if (user.realRole !== "Admin" || user.isSimulated) throw new Error("Unauthorized");
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const config = getConfig();
+    const sheet = ss.getSheetByName("Orders");
+    ensureOrdersRecordTypeColumn_(sheet);
+
+    const sanitize = (str) => str ? str.toString().replace(/[<>]/g, "").trim() : "";
+    const fromDept = sanitize(form.fromDept);
+    const toDept = sanitize(form.toDept);
+    const amount = Math.round((Number(form.amount) || 0) * 100) / 100;
+
+    if (!fromDept || !toDept) throw new Error("Please choose both departments.");
+    if (fromDept === toDept) throw new Error("Transfer departments must be different.");
+    if (!amount || amount <= 0) throw new Error("Transfer amount must be greater than zero.");
+
+    const budgets = getBudgetSnapshot_(ss);
+    if (!budgets[fromDept] || !budgets[toDept]) throw new Error("Only departments with live budgets can be used for transfers.");
+    if (amount > (Number(budgets[fromDept].remaining) || 0)) {
+      throw new Error("Transfer amount exceeds the available remaining budget for the source department.");
+    }
+
+    const fromRemainingBefore = Number(budgets[fromDept].remaining) || 0;
+    const toRemainingBefore = Number(budgets[toDept].remaining) || 0;
+    const fromRemainingAfter = fromRemainingBefore - amount;
+    const toRemainingAfter = toRemainingBefore + amount;
+
+    const now = new Date();
+    const timestamp = Utilities.formatDate(now, Session.getScriptTimeZone(), "dd/MM/yyyy HH:mm");
+    const actor = user.email.split("@")[0];
+    const note = `[${timestamp} ${actor}]: Budget transfer of GBP ${amount.toFixed(2)} from ${fromDept} to ${toDept}.`;
+    const debitId = Math.floor(Math.random() * 900000) + 100000;
+    const creditId = Math.floor(Math.random() * 900000) + 100000;
+
+    appendOrderRow_(sheet, [
+      debitId, fromDept, now, user.email,
+      "Budget Transfer", "", `Budget Transfer to ${toDept}`, "TRANSFER",
+      1, amount, amount,
+      "Budget Transfer", now,
+      now, "", amount, "", note,
+      "Budget Transfer", ""
+    ], "Transfer");
+
+    appendOrderRow_(sheet, [
+      creditId, toDept, now, user.email,
+      "Budget Transfer", "", `Budget Transfer from ${fromDept}`, "TRANSFER",
+      1, -amount, -amount,
+      "Budget Transfer", now,
+      now, "", -amount, "", note,
+      "Budget Transfer", ""
+    ], "Transfer");
+
+    SpreadsheetApp.flush();
+    clearBudgetCache_();
+
+    sendEmailAlert(
+      config.financeEmail,
+      `Budget Transfer: ${fromDept} to ${toDept}`,
+      `
+        <h3 style="margin-top:0;">Budget Transfer Completed</h3>
+        <p style="font-size:14px; margin-bottom:20px;">A budget transfer has been applied in the portal.</p>
+        <table style="width:100%; border-collapse:collapse; background:#fff; border:1px solid #eee;">
+          <tr><th style="text-align:left; padding:8px; border-bottom:1px solid #ddd; color:#666; font-size:12px; width:35%;">Transferred By</th><td style="text-align:left; padding:8px; border-bottom:1px solid #eee; color:#333; font-weight:bold;">${user.email}</td></tr>
+          <tr><th style="text-align:left; padding:8px; border-bottom:1px solid #ddd; color:#666; font-size:12px; width:35%;">Transfer Date</th><td style="text-align:left; padding:8px; border-bottom:1px solid #eee; color:#333; font-weight:bold;">${timestamp}</td></tr>
+          <tr><th style="text-align:left; padding:8px; border-bottom:1px solid #ddd; color:#666; font-size:12px; width:35%;">Amount</th><td style="text-align:left; padding:8px; border-bottom:1px solid #eee; color:#333; font-weight:bold;">GBP ${amount.toFixed(2)}</td></tr>
+          <tr><th style="text-align:left; padding:8px; border-bottom:1px solid #ddd; color:#666; font-size:12px; width:35%;">From Department</th><td style="text-align:left; padding:8px; border-bottom:1px solid #eee; color:#333; font-weight:bold;">${fromDept} (remaining: GBP ${fromRemainingAfter.toFixed(2)})</td></tr>
+          <tr><th style="text-align:left; padding:8px; border-bottom:1px solid #ddd; color:#666; font-size:12px; width:35%;">To Department</th><td style="text-align:left; padding:8px; border-bottom:1px solid #eee; color:#333; font-weight:bold;">${toDept} (remaining: GBP ${toRemainingAfter.toFixed(2)})</td></tr>
+        </table>
+      `
+    );
+
+    return `Budget transfer completed: ${fromDept} to ${toDept} (GBP ${amount.toFixed(2)}).`;
+  } catch (e) {
+    logError(e, "createBudgetTransfer");
+    throw e;
+  }
+}
+
 function logInvoice(form) {
   try {
     const user = getUserContext();
-    if (user.role !== "Admin" && !user.isSimulated) return "Unauthorized";
+    const config = getConfig();
+    const sanitize = (str) => str ? str.toString().replace(/[<>]/g, "").trim() : "";
+    const dept = sanitize(form.dept);
+    const supplier = sanitize(form.supplier);
+    const description = sanitize(form.desc);
+    const invoiceRef = sanitize(form.invoiceRef);
+    const cost = Math.round((Number(form.cost) || 0) * 100) / 100;
+    const canUseDept = user.role === "Admin" || (user.depts || []).includes(dept);
+
+    if (!canUseDept) throw new Error("Unauthorized");
+    if (!dept || !supplier || !description || cost <= 0) {
+      throw new Error("Department, supplier, description, and a valid invoice amount are required.");
+    }
 
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const sheet = ss.getSheetByName("Orders");
-    const sanitize = (str) => str ? str.toString().replace(/[<>]/g, "") : "";
+    ensureOrdersRecordTypeColumn_(sheet);
 
     const id = Math.floor(Math.random() * 900000) + 100000;
     const now = new Date();
@@ -470,12 +618,42 @@ function logInvoice(form) {
     }
     const finalAttachmentString = attachmentUrls.join(", ");
 
-    sheet.appendRow([
-      id, form.dept, now, "Finance (Direct)", sanitize(form.supplier), "", sanitize(form.desc), form.invoiceRef || "",
-      1, form.cost, form.cost, "Finance", now, now, "", form.cost, "Ordered", "", "", finalAttachmentString
-    ]);
+    appendOrderRow_(sheet, [
+      id, dept, now, user.email,
+      supplier, "", description, invoiceRef,
+      1, cost, cost, "Finance", "", "", "", "", "", "", "", finalAttachmentString
+    ], "Invoice");
 
-    CacheService.getScriptCache().remove("budgets_data");
+    SpreadsheetApp.flush();
+    clearBudgetCache_();
+
+    const orderObj = {
+      id: id,
+      dept: dept,
+      date: Utilities.formatDate(now, Session.getScriptTimeZone(), "dd/MM/yyyy"),
+      requester: user.email,
+      supplier: supplier,
+      link: "",
+      desc: description,
+      totalPrice: cost,
+      finalPrice: "",
+      status: "Pending",
+      notes: "",
+      dateNeeded: "",
+      attachment: finalAttachmentString,
+      recordType: "Invoice"
+    };
+
+    sendEmailAlert(
+      config.financeEmail,
+      "New Invoice Logged: " + description,
+      formatEmailBody(
+        "New Invoice Logged",
+        `A new invoice has been logged by <strong>${user.email}</strong> and is ready for finance processing.`,
+        orderObj
+      )
+    );
+
     return "Invoice Logged";
   } catch (e) {
     logError(e, "logInvoice");
@@ -502,7 +680,7 @@ function bulkUpdateOrders(ids, deliveryDate) {
         }
       }
     }
-    CacheService.getScriptCache().remove("budgets_data");
+    clearBudgetCache_();
     return `Updated ${count} orders.`;
   } catch (e) { logError(e, "bulkUpdate"); throw e; }
 }
@@ -535,15 +713,20 @@ function updateOrder(id, deliveryDate, finalPrice, message, category) {
         // Update local data to reflect changes for the email
         if (finalPrice !== "") data[i][15] = finalPrice;
 
-        CacheService.getScriptCache().remove("budgets_data");
-        const requester = data[i][3];
-        if (!requester.includes("Finance (Direct)")) {
-          const orderObj = extractOrderData(data[i]);
-          const emailMsg = message ? `The status of your order has been updated.<br><strong>Message from Finance:</strong> "${message}"` : "The status of your order has been updated.";
-          sendEmailAlert(requester, "Order Update: " + orderObj.desc, formatEmailBody("Order Updated", emailMsg, orderObj));
+          clearBudgetCache_();
+          const requester = data[i][3];
+          if (!requester.includes("Finance (Direct)")) {
+            const orderObj = extractOrderData(data[i]);
+            const itemLabel = orderObj.recordType === "Invoice" ? "invoice" : "order";
+            const emailMsg = message ? `The status of your ${itemLabel} has been updated.<br><strong>Message from Finance:</strong> "${message}"` : `The status of your ${itemLabel} has been updated.`;
+            sendEmailAlert(
+              requester,
+              `${orderObj.recordType === "Invoice" ? "Invoice" : "Order"} Update: ` + orderObj.desc,
+              formatEmailBody(orderObj.recordType === "Invoice" ? "Invoice Updated" : "Order Updated", emailMsg, orderObj)
+            );
+          }
+          return "Updated";
         }
-        return "Updated";
-      }
     }
     return "Order Not Found";
   } catch (e) { logError(e, "updateOrder"); throw e; }
@@ -573,7 +756,7 @@ function userCancelOrder(id, reason) {
       }
 
       SpreadsheetApp.flush();
-      CacheService.getScriptCache().remove("budgets_data");
+      clearBudgetCache_();
       return "Success";
     }
   }

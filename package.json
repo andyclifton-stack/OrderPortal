@@ -11,5 +11,6 @@
     "preview:emails": "node testing/notification-design-preview.cjs",
     "check:upload": "node testing/check-upload.cjs"
   },
-  "devDependencies": { "playwright": "1.65.0", "@google/clasp": "3.4.1" }
+  "devDependencies": { "playwright": "1.65.0", "@google/clasp": "3.4.1" },
+  "overrides": { "gaxios": "7.3.1" }
 }

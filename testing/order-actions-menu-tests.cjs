@@ -13,7 +13,7 @@ for (let mask = 0; mask < 1024; mask++) {
   const completed=bit(7), cancelled=bit(8), transfer=bit(9);
   for (const access of [false,true]) {
     const result=build({id:"order'1",hasNotes:true},caps,actions,completed,cancelled,transfer,access);
-    assert.equal(result.includes('duplicateOrder('), !transfer && caps.canDuplicateRequests);
+    assert.equal(result.includes('duplicateOrder('), !transfer && !cancelled && caps.canDuplicateRequests);
     assert.equal(result.includes('editOrder('), !transfer && actions.canEdit);
     assert.equal(result.includes('openFinance('), !transfer && !cancelled && (actions.canProcess || actions.canCorrect));
     assert.equal(result.includes('cancelOrder('), !transfer && caps.canCancelOrders && !completed && !cancelled && (access || caps.canViewAllFinanceData));

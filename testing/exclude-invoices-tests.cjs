@@ -19,7 +19,7 @@ for(const role of ['admin','staff','head','finance']){
 }
 const html=fs.readFileSync(path.resolve(__dirname,'../Index.html'),'utf8');
 function extract(name){const start=html.indexOf('function '+name+'(');assert(start>=0);const end=html.indexOf('\n      function ',start+1);return html.slice(start,end<0?undefined:end);}
-const els={};for(const id of ['deptFilter','searchText','pendingFilter','returnsFilter','excludeInvoicesFilter','paymentMethodFilter','dateFilterField','searchDateFrom','searchDateTo','requestOwnership'])els[id]={id,value:'',checked:false};
+const els={};for(const id of ['recordView','deptFilter','searchText','pendingFilter','returnsFilter','excludeInvoicesFilter','paymentMethodFilter','dateFilterField','searchDateFrom','searchDateTo','requestOwnership'])els[id]={id,value:'',checked:false};
 els.deptFilter.value='All';els.deptFilter.options=[{value:'All'}];
 const context={canDo:()=>true,document:{getElementById:id=>els[id],querySelector:()=>null},currentSort:{field:'dateReq',dir:'desc'},currentPage:3,rowsPerPage:25,reviewScope_:'',selectedOrderIds:new Set(),setRowsPerPagePreference_(){},getStoredRowsPerPage_(){return 25;},updateBulkBar(){},resetSelectionAndRender(){context.currentPage=1;}};
 vm.createContext(context);vm.runInContext(['getOrderPageQuery_','captureUiState_','restoreUiState_','clearFilters','changeOrderStatusFilter_'].map(extract).join('\n'),context);

@@ -3,3 +3,10 @@ testing/**
 tmp/**
 local-mock.js
 skeleton_test.html
+node_modules/**
+package.json
+package-lock.json
+*.md
+docs/**
+vendor/**
+*.cjs

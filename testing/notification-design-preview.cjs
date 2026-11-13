@@ -8,8 +8,8 @@ const all=[];
 function runtime(){
  const r=createRuntime(source,4);r.messages=[];
  for(const [start,end] of [['function buildNotificationWarning_(', 'function getConfigurationHeaderIndex_('],['function sendEmailAlert_(', 'function uploadFileToDrive_(']])vm.runInContext(code.slice(code.indexOf(start),code.indexOf(end,code.indexOf(start))),r.api);
- r.api.developmentNotificationsSuppressed_=()=>false;r.api.getDevelopmentNotificationEmail_=()=>'';
- r.api.MailApp={sendEmail:message=>r.messages.push(message)};
+ r.api.developmentChatAndErrorAlertsSuppressed_=()=>false;r.api.getDevelopmentNotificationEmail_=()=>'';
+ r.api.sendDevelopmentServiceEmail_=message=>r.messages.push(message);r.api.sendPortalServiceEmail_=message=>r.messages.push(message);
  r.sheets.Users.rows[0].push('Processing Departments');r.sheets.Users.rows[3][8]='Science';
  r.sheets.Orders.rows[1][6]='Laptop docking station for the shared teaching desk';
  return r;

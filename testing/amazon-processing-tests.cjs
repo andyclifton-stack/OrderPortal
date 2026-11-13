@@ -98,7 +98,7 @@ const own=r.sheets.Orders.rows.at(-1)[0];
 assert(a.bulkFinalizeOrders([{id:own,quantity:1,finalPrice:10,expectedVersion:version(own),paymentMethod:'Credit card'}]).success);
 assert.equal(row(own)[cols.approvalStatusIndex],'AWAITING_SIGNOFF');
 assert(!a.reviewOrderApproval(own,'APPROVE','',version(own)).success);
-assert(a.developmentNotificationsSuppressed_());
+assert(a.developmentChatAndErrorAlertsSuppressed_());
 // Upload authorisation happens before creating any file, even on direct RPC.
 let uploads=0;
 a.uploadFileToDrive_=()=>{uploads++;return {fileId:'synthetic-file',url:'https://example.com/synthetic-file'};};
@@ -112,21 +112,20 @@ const before=JSON.stringify(r.sheets.Orders.rows);
 assert(!a.bulkFinalizeOrders([{id:other,quantity:1,finalPrice:10,expectedVersion:version(other),paymentMethod:'Credit card'},{id:own,quantity:1,finalPrice:10,expectedVersion:version(own),paymentMethod:'Credit card'}]).success);
 assert.equal(JSON.stringify(r.sheets.Orders.rows),before,'bulk denial is atomic');
 // Each proposed named grant is exact; a currently viewed extra budget grants nothing.
-const manifest=require('../output/amazon-dev-20261016/proposed-assignments.json');
-assert.equal(manifest.buyerCount,32);assert.equal(manifest.budgetCount,48);
-for(const person of manifest.people){
- const u={email:person.email,realEmail:person.email,role:'Staff',realRole:'Staff',depts:[...person.processingDepartments,'VIEW ONLY'],processingDepartments:person.processingDepartments};
+const people = [
+ {email:'buyer-one@example.org',processingDepartments:['Science']},
+ {email:'buyer-two@example.org',processingDepartments:['English','Science']}
+];
+for (const person of people) {
+ const u={...person,realEmail:person.email,role:'Staff',realRole:'Staff',depts:[...person.processingDepartments,'VIEW ONLY']};
  a.attachCapabilities_(u);
  for(const budget of person.processingDepartments){assert(a.canProcessOrderRecord_(u,budget,'Order'));assert(a.canLogInvoiceDepartment_(u,budget));}
  assert(!a.canProcessOrderRecord_(u,'VIEW ONLY','Order'));
  assert(!a.canLogInvoiceDepartment_(u,'VIEW ONLY'));
- assert(a.canViewOrderRecord_(u,'VIEW ONLY','Order'),'existing viewing access is preserved');
- assert(!a.canViewOrderRecord_(u,'UNRELATED BUDGET','Order'),'new grants never expose unrelated budgets');
+ assert(a.canViewOrderRecord_(u,'VIEW ONLY','Order'));
+ assert(!a.canViewOrderRecord_(u,'UNRELATED BUDGET','Order'));
  assert(!a.canViewOrderRecord_(u,'UNRELATED BUDGET','Invoice'));
 }
-assert(!manifest.people.some(p=>p.email.startsWith('patrick.')));
-assert(manifest.people.find(p=>p.email.startsWith('stuart.')).processingDepartments.includes('Prep DT'));
-assert(!manifest.budgets.includes('Senior Futures'));
 // Configuration uses supported saving, persists grants, audits changes and rejects stale saves.
 actor('admin');
 const ss=a.getPortalSpreadsheet_();

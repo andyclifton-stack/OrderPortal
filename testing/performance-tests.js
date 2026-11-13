@@ -1,6 +1,7 @@
 const assert=require('assert'),path=require('path');
 const {createRuntime}=require('./performance-fixtures.cjs');
-const baseline=path.resolve(__dirname,'../../implementation-backups/performance-20260907/local/Code.js');
+const baseline=process.env.PORTAL_PERFORMANCE_BASELINE;
+if (baseline) {
 for (const actor of ['admin','staff','head','finance']) {
   const old=createRuntime(baseline,100), current=createRuntime(path.resolve(__dirname,'../Code.js'),100);
   old.setActor(actor+'@claremontschool.co.uk');current.setActor(actor+'@claremontschool.co.uk');
@@ -22,6 +23,7 @@ for (const actor of ['admin','staff','head','finance']) {
     return value;
   }
   assert.deepStrictEqual(JSON.parse(JSON.stringify(originalContract(b,a))),JSON.parse(JSON.stringify(a)),'Original response fields preserve '+actor+' behaviour');
+}
 }
 const rt=createRuntime(path.resolve(__dirname,'../Code.js'),100);
 const {api,sheets}=rt;

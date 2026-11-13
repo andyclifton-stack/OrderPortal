@@ -1,0 +1,2 @@
+# Integrity hashes require byte-identical vendor assets on every platform.
+testing/vendor/* -text

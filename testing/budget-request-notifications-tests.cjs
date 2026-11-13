@@ -73,7 +73,7 @@ assert.equal(developmentMessages.length,3);
 assert(developmentMessages.every(message=>message.to==='andy.clifton@claremontschool.co.uk' && message.subject.startsWith('[DEV TEST]')));
 
 delivery.setDevelopment(false);
-delivery.api.developmentNotificationsSuppressed_=()=>false;
+delivery.api.developmentChatAndErrorAlertsSuppressed_=()=>false;
 delivery.api.getDevelopmentNotificationEmail_=()=>'';
 let renderedEmail;
 delivery.api.sendPortalServiceEmail_=message=>{sends++;renderedEmail=message;if(sends===2)throw Error('Synthetic mail failure');};

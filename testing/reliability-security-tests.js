@@ -49,10 +49,13 @@ const expectedPublicFunctions = [
   "resubmitOrderApproval",
   "userCancelOrder",
   "addNote",
+  "removeInvoiceRecord",
+  "voidDuplicateInvoice",
   "reportMissingBudget"
 ].sort();
 
-const actualPublicFunctions = [...server.matchAll(/^function\s+([A-Za-z_$][\w$]*)\s*\(/gm)]
+const reviewedServer = server + (process.env.PORTAL_TEST_UNEXPECTED_ACTION ? '\nfunction unexpectedAction() {}' : '');
+const actualPublicFunctions = [...reviewedServer.matchAll(/^function\s+([A-Za-z_$][\w$]*)\s*\(/gm)]
   .map(match => match[1])
   .filter(name => !name.endsWith("_"))
   .sort();

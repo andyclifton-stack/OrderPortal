@@ -1,8 +1,8 @@
 const fs=require('fs'),path=require('path'),http=require('http'),assert=require('assert');
 const {createRuntime}=require('./performance-fixtures.cjs');
-const {chromium,request}=require(process.env.PORTAL_PLAYWRIGHT || 'C:/Users/AndyClifton/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
-const root=path.resolve(__dirname,'..'), baseline=path.resolve(root,'../implementation-backups/performance-20260907/local');
-const output=process.env.PORTAL_TEST_OUTPUT || path.resolve(root,'../implementation-backups/performance-20260907/results');fs.mkdirSync(output,{recursive:true});
+const {chromium,request}=require('playwright');
+const root=path.resolve(__dirname,'..'), baseline=process.env.PORTAL_PERFORMANCE_BASELINE_DIR || root;
+const output=process.env.PORTAL_TEST_OUTPUT || path.resolve(root,'output/browser');fs.mkdirSync(output,{recursive:true});
 const runtimes=new Map();
 const adapter=`window.google={script:{get run(){let ok,fail;const p=new Proxy({}, {get(t,k){if(k==='withSuccessHandler')return f=>{ok=f;return p;};if(k==='withFailureHandler')return f=>{fail=f;return p;};return(...args)=>{const q=new URLSearchParams(location.search);window.__lastRpcStarted=performance.now();fetch('/rpc?variant='+location.pathname.split('/')[1]+'&count='+(q.get('count')||100)+'&role='+(q.get('role')||'Admin'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:k,args})}).then(r=>r.json()).then(result=>{window.__lastRpcFinished=performance.now();window.__lastResponseBytes=JSON.stringify(result).length;if(result.fixtureError){if(fail)fail({message:result.fixtureError});}else if(ok)ok(result);}).catch(e=>fail&&fail(e));};}});return p;}}};`;
 function runtime(variant,count,role){const key=[variant,count,role].join(':');if(!runtimes.has(key)){const rt=createRuntime(path.join(variant==='before'?baseline:root,'Code.js'),count);const email={Admin:'admin',Staff:'staff',Head:'head',Wipro:'finance'}[role]+'@claremontschool.co.uk';rt.setActor(email);runtimes.set(key,rt);}return runtimes.get(key);}
@@ -12,7 +12,7 @@ const server=http.createServer(async(req,res)=>{
  if(u.pathname.endsWith('/local-mock.js')){res.setHeader('Content-Type','text/javascript');res.end(adapter);return;}
  const [_,variant,file]=u.pathname.split('/');if(!['before','after'].includes(variant)||!['Index.html','dashboard.html','configuration.html'].includes(file)){res.statusCode=404;res.end();return;}
  let source=fs.readFileSync(path.join(variant==='before'?baseline:root,file),'utf8');
- source=source.replace(/<\?!= includePortalStyles_\('(SharedPolish|SharedDropdowns)'\); \?>/g,(_,name)=>fs.readFileSync(path.join(variant==='before'?baseline:root,name+'.html'),'utf8'));
+ source=source.replace(/<\?!= includePortalStyles_\('(SharedPolish|SharedDropdowns|PortalClientContext)'\); \?>/g,(_,name)=>fs.readFileSync(path.join(variant==='before'?baseline:root,name+'.html'),'utf8'));
  if(file!=='Index.html')source=source.replace('<head>','<head><script>'+adapter+'</script>');
  res.setHeader('Content-Type','text/html');res.end(source);
  }catch(e){res.setHeader('Content-Type','application/json');res.end(JSON.stringify({fixtureError:e.message}));}
@@ -20,7 +20,7 @@ const server=http.createServer(async(req,res)=>{
 function summary(values){const sorted=[...values].sort((a,b)=>a-b);return {median:+((sorted[Math.floor((sorted.length-1)/2)]+sorted[Math.ceil((sorted.length-1)/2)])/2).toFixed(1),slowest:+sorted.at(-1).toFixed(1)};}
 (async()=>{
  await new Promise(r=>server.listen(0,'127.0.0.1',r));const base='http://127.0.0.1:'+server.address().port;
- const browser=await chromium.launch({channel:'chrome',headless:true});
+ const browser=await chromium.launch({headless:true});
  const assets=new Map();
  const assetRequest=await request.newContext();
  async function context(options={}){const c=await browser.newContext({viewport:{width:1440,height:1000},...options});

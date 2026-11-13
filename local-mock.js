@@ -590,6 +590,12 @@ if (typeof window !== 'undefined') {
                                 success: true,
                                 user: { ...MOCK_USER, capabilities: buildMockCapabilities(MOCK_USER) },
                                 orders: decorateMockOrders(MOCK_USER),
+                                summary: {ledger:Object.fromEntries(Object.entries(MOCK_BUDGETS).map(([dept,budget]) => {
+                                    const allocation = Number(budget.total || 0), remaining = Number(budget.remaining || 0);
+                                    const used = allocation - remaining;
+                                    const committed = MOCK_ORDERS.filter(o=>o.dept===dept && o.status==='Pending').reduce((total,o)=>total+Number(o.totalPrice || 0),0);
+                                    return [dept,{allocation,remaining,used,committed,spent:used-committed}];
+                                }))},
                                 budgets: MOCK_BUDGETS,
                                 budgetErrors: Object.keys(MOCK_BUDGETS)
                                     .filter(dept => MOCK_BUDGETS[dept].hasCalculationError)
@@ -606,6 +612,7 @@ if (typeof window !== 'undefined') {
                     };
 
                     proxy.getOverviewDashboardData = function () {
+                        if (window.__mockOverview) { setTimeout(()=>success && success(window.__mockOverview),100); return; }
                         console.log("Mock Call: getOverviewDashboardData");
                         setTimeout(() => {
                             const user = { ...MOCK_USER, capabilities: buildMockCapabilities(MOCK_USER) };
@@ -974,6 +981,7 @@ if (typeof window !== 'undefined') {
 
                     proxy.submitOrder = function (orderObj) {
                         MOCK_SUBMIT_CALL_COUNT += 1;
+                        document.documentElement.dataset.mockSubmitCalls = String(MOCK_SUBMIT_CALL_COUNT);
                         console.log("Mock Call: submitOrder", MOCK_SUBMIT_MODE, MOCK_SUBMIT_CALL_COUNT, orderObj);
                         if (MOCK_SUBMIT_MODE === "timeout") return;
                         if (MOCK_SUBMIT_MODE === "failure") {
@@ -1038,6 +1046,12 @@ if (typeof window !== 'undefined') {
                         setTimeout(() => {
                             if (success) success({ success: true, saved: true, message: existingOrder ? "Order updated successfully." : "Order submitted successfully." });
                         }, 300);
+                    };
+
+                    proxy.getPortalSaveStatus = function (kind, id, cancel) {
+                        const state = cancel ? 'CANCELLED' : (new URLSearchParams(location.search).get('mockSaveState') || 'DONE');
+                        document.documentElement.dataset.mockStatusCalls = String(Number(document.documentElement.dataset.mockStatusCalls || 0) + 1);
+                        setTimeout(() => success && success({state, reference:id}), 100);
                     };
 
                     proxy.logInvoice = function (data) {

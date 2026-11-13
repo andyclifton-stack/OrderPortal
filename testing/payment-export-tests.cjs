@@ -5,10 +5,10 @@ const path=require('path');
 (async()=>{
   const root=path.resolve(__dirname,'..');
   const html=fs.readFileSync(path.join(root,'Index.html'),'utf8');
-  const response=await fetch('https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js');
-  if(!response.ok)throw Error('Export library download failed: '+response.status);
   const ctx={console,TextDecoder,TextEncoder,Uint8Array,ArrayBuffer};vm.createContext(ctx);
-  vm.runInContext(await response.text(),ctx);
+  vm.runInContext(fs.readFileSync(path.join(__dirname,'vendor/xlsx.full.min.js'),'utf8'),ctx);
+  assert.equal(ctx.XLSX.version,'0.20.1');
+  fs.mkdirSync(path.join(root,'output'),{recursive:true});
   const card={id:'PAYMENT-DEV-CARD',dateReq:'01/09/2026',dateOrdered:'25/09/2026',reportingDate:'25/09/2026',reportingSite:'Prep',dept:'Science',glCode:'SCI-DEV',desc:'Card export verification',qty:2,finalPrice:25,supplier:'Test Supplier',paymentMethod:'Credit card',processedBy:'processor@example.com',recordType:'Order',status:'Ordered',approvalStatus:'APPROVED',
     returnInfo:{status:'Refund reversed',original:25,refunded:0,remaining:25,refunds:[{id:'DEV-CREDIT',reversalId:'DEV-REVERSAL'}]}};
   const adjustment={recordType:'Invoice',status:'Processed',financeProcessedBy:'finance@example.com',reportingSite:'Prep',returnInfo:{parentId:card.id}};

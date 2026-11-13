@@ -155,6 +155,7 @@ function portalRpc(method, args, context) {
 // Newest first. Entries ship with the change; keep older entries for the archive.
 function getRecentChanges_() {
   return [
+    { date: '2026-11-13', text: 'Interrupted submissions now show a clear check action. Finance form labels and cost displays on phones are easier to use.' },
     { date: '2026-11-11', text: 'Remove an invoice record with a reason, without finding the original reference. Removed records keep their attachments and audit history in the Removed records view and are excluded from budgets and reports.' },
     { date: '2026-11-10', text: 'Account preview now shows the new request and invoice forms available to the selected user. You can inspect the forms without saving anything.' },
     { date: '2026-11-05', text: 'Requests now keep your drafts. You can edit your own pending requests, find your purchases more easily and follow clearer Notes conversations.' },
@@ -318,7 +319,7 @@ function getPortalAttachmentFolder_() {
   return folder;
 }
 
-function developmentNotificationsSuppressed_() {
+function developmentChatAndErrorAlertsSuppressed_() {
   if (!isDevelopmentRuntime_()) return false;
   return true;
 }
@@ -416,7 +417,7 @@ function createOrderChatPayload_(user, isEdit, order) {
 }
 
 function sendOrderChatAlert_(payload) {
-  if (developmentNotificationsSuppressed_()) return { success: true, skipped: true };
+  if (developmentChatAndErrorAlertsSuppressed_()) return { success: true, skipped: true };
   if (!payload) return { success: true, skipped: true };
   if (!payload.configuration || !payload.configuration.isValid) {
     console.error("Order Chat notification configuration is missing or invalid.");
@@ -3117,7 +3118,7 @@ function createPortalErrorDeliveryPlan_(e, context, primaryRecipient, markers, o
 
 function sendPortalErrorNotification_(e, context, options) {
   portalAssertExecutionAccount_();
-  if (developmentNotificationsSuppressed_() && !(options && options.test === true)) return { success: true, skipped: true };
+  if (developmentChatAndErrorAlertsSuppressed_() && !(options && options.test === true)) return { success: true, skipped: true };
   const markers = getIdentityMarkers_();
   const deliveryPlan = createPortalErrorDeliveryPlan_(e, context, null, markers, options);
   if (isDevelopmentRuntime_()) {

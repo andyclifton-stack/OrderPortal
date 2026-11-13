@@ -18,7 +18,7 @@
             window.__dashboardChartResult = ok => { clearTimeout(timer); resolve(ok); };
         });
     </script>
-    <script async src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.min.js"
+    <script async src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.min.js" integrity="sha384-XcdcwHqIPULERb2yDEM4R0XaQKU3YnDsrTmjACBZyfdVVqjh6xQ4/DCMd7XLcA6Y" crossorigin="anonymous"
         onload="window.__dashboardChartResult(!!window.Chart)"
         onerror="window.__dashboardChartResult(false)"></script>
     <?!= includePortalStyles_('PortalClientContext'); ?>
@@ -1865,7 +1865,7 @@ select {
             const button=document.querySelector('#chart-warning button');if(button.disabled)return;button.disabled=true;
             const script=document.createElement('script');let done=false;
             const finish=()=>{if(done)return;done=true;clearTimeout(timer);button.disabled=false;if(window.Chart){initCharts();renderDashboard(globalData,document.getElementById('dept-filter').value);}};
-            const timer=setTimeout(finish,30000);script.src='https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.min.js';script.onload=finish;script.onerror=finish;document.head.appendChild(script);
+            const timer=setTimeout(finish,30000);script.integrity='sha384-XcdcwHqIPULERb2yDEM4R0XaQKU3YnDsrTmjACBZyfdVVqjh6xQ4/DCMd7XLcA6Y';script.crossOrigin='anonymous';script.src='https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.min.js';script.onload=finish;script.onerror=finish;document.head.appendChild(script);
         }
         function exportReport() {
             if(!globalData)return;

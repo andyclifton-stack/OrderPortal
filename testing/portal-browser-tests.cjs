@@ -1,0 +1,120 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const {chromium} = require('playwright');
+const {createPreviewServer} = require('./error-ui-server.cjs');
+const assets = require('./vendor/assets.json');
+(async()=>{
+  const server = createPreviewServer();
+  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  let browser;
+  try { browser = await chromium.launch({headless:true}); }
+  catch (error) { server.close(); throw error; }
+  const output = path.join(__dirname,'../output/browser');
+  fs.mkdirSync(output,{recursive:true});
+  try {
+    const page = await browser.newPage();
+    page.setDefaultTimeout(15000);
+    const pageErrors=[];
+    page.on('pageerror',error=>pageErrors.push(error.message));
+    await page.route('**/*',async route=>{
+      const url = route.request().url();
+      if (url.startsWith(base)) return route.continue();
+      const entry = Object.entries(assets).find(([,meta])=>url === meta.url);
+      if (entry) return route.fulfill({path:path.join(__dirname,'vendor',entry[0]),contentType:entry[0].endsWith('.js')?'application/javascript':'text/css'});
+      return route.abort();
+    });
+    await page.goto(base);
+    await page.waitForFunction(()=>document.querySelector('#mainApp').style.display !== 'none');
+    await page.waitForFunction(()=>document.querySelectorAll('#orderTable tbody tr').length>0);
+    await page.evaluate(()=>{const order=globalData.orders.find(o=>o.recordType==='Order');if(order){order.totalPrice=1234567.89;order.finalPrice=1234568.89;order.status='Ordered';renderApp(true);}});
+    for (const width of [320,390,768,769,1024,1366]) {
+      await page.setViewportSize({width,height:1000});
+      const dimensions = await page.evaluate(()=>{
+        const cost = document.querySelector('#orderTable tbody tr .order-cost-column');
+        return {cost:cost?.getBoundingClientRect().width,overflow:document.documentElement.scrollWidth>innerWidth};
+      });
+      assert(!dimensions.overflow,`Page overflow at ${width}`);
+      if (width<=768) assert(dimensions.cost>105,`Cost remains fixed width at ${width}`);
+      await page.screenshot({path:path.join(output,`portal-${width}.png`),fullPage:true});
+    }
+    const unnamed = await page.evaluate(()=>Array.from(document.querySelectorAll('[id^="correction"],#transferAmount,#transferFromDept,#transferToDept'))
+      .filter(el=>el.matches('input,select,textarea') && !el.labels?.length && !el.getAttribute('aria-label')).map(el=>el.id));
+    assert.deepEqual(unnamed,[]);
+    await page.evaluate(()=>{rememberCreate_('order','synthetic-recovery');orderSubmitBusy=false;updateCreateRecoveryNotice_();});
+    assert.equal(await page.locator('#submitBtn').textContent(),'Check previous submission');
+    await page.evaluate(()=>guardPendingCreate_('order'));
+    await page.waitForFunction(()=>document.documentElement.dataset.mockStatusCalls==='1');
+    await page.waitForFunction(()=>!pendingCreate_('order'));
+    await page.evaluate(()=>{rememberCreate_('invoice','synthetic-invoice');invoiceSubmitBusy=false;resetInvoiceButtons();});
+    assert.equal(await page.locator('#btnInvoiceSaveClose').textContent(),'Check previous submission');
+    assert(await page.locator('#btnInvoiceAddAnother').isDisabled());
+    await page.evaluate(()=>{window.portalRun={withSuccessHandler(){throw Error('Synthetic recovery failure');}};guardPendingCreate_('invoice');});
+    assert.match(await page.locator('#msgBody').textContent(),/could not be checked/);
+    assert.equal(await page.evaluate(()=>createRecoveryBusy_),false);
+    await page.reload();
+    await page.waitForFunction(()=>document.querySelector('#mainApp').style.display !== 'none');
+    await page.evaluate(()=>{
+      const original = pendingCreate_;
+      pendingCreate_ = ()=>{throw Error('Storage blocked');};
+      guardPendingCreate_('order');
+      pendingCreate_ = original;
+    });
+    assert.match(await page.locator('#msgBody').textContent(),/browser storage/);
+    // Drive a real form submission through its timeout and recovery entry points.
+    await page.goto(base+'/?mockSubmit=timeout&mockSaveState=PENDING');
+    await page.waitForFunction(()=>document.querySelector('#mainApp').style.display !== 'none');
+    await page.locator('#btnTabNew').click();
+    await page.locator('#formSupplier').fill('Synthetic timeout supplier');
+    await page.locator('#formDesc').fill('Synthetic timeout recovery test');
+    await page.locator('#formUnit').fill('1.23');
+    await page.locator('#submitBtn').click();
+    await page.waitForFunction(()=>document.querySelector('#submitBtn').textContent==='Check previous submission');
+    assert.equal(await page.evaluate(()=>document.documentElement.dataset.mockSubmitCalls),'1');
+    await page.locator('#msgModal [data-bs-dismiss]').click();
+    await page.locator('#submitBtn').click();
+    await page.waitForFunction(()=>document.documentElement.dataset.mockStatusCalls==='1');
+    assert.equal(await page.evaluate(()=>document.documentElement.dataset.mockSubmitCalls),'1');
+    assert(await page.evaluate(()=>!!pendingCreate_('order')));
+    // SRI failures must take the existing component failure path.
+    await page.route(base+'/',async route=>{
+      const response = await route.fetch();
+      const body = (await response.text()).replace(/integrity="sha384-[^"]+"/, 'integrity="sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"');
+      await route.fulfill({response,body});
+    });
+    await page.goto(base);
+    await page.locator('#errorBox').waitFor({state:'visible'});
+    assert.match(await page.locator('#errorBox').textContent(),/component|load|reload/i);
+    await page.unroute(base+'/');
+    for (const name of ['configuration.html','dashboard.html']) {
+      await page.goto(base+'/'+name);
+      await page.waitForTimeout(1200);
+      const errors = await page.locator('body').textContent();
+      assert(!errors.includes('SyntaxError'));
+      await page.screenshot({path:path.join(output,name+'.png'),fullPage:true});
+    }
+    for (const [name,asset,selector] of [
+      ['configuration.html','bootstrap.bundle.min.js','#errorMessage'],
+      ['dashboard.html','chart.umd.min.js','#chart-warning']
+    ]) {
+      await page.route(base+'/'+name,async route=>{
+        const response=await route.fetch();
+        const body=(await response.text()).replaceAll(assets[asset].integrity,'sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA');
+        await route.fulfill({response,body});
+      });
+      await page.goto(base+'/'+name);
+      await page.locator(selector).waitFor({state:'visible'});
+      assert.match(await page.locator(selector).textContent(),/could not load|unavailable/i);
+      await page.unroute(base+'/'+name);
+    }
+    await page.goto(base);
+    await page.waitForFunction(()=>document.querySelector('#mainApp').style.display !== 'none');
+    await page.route(assets['xlsx.full.min.js'].url,route=>route.fulfill({body:'/* altered asset */',contentType:'application/javascript'}));
+    const exportError=await page.evaluate(()=>ensureXlsxLoaded_().then(()=>'',error=>error.message));
+    assert.equal(exportError,'Failed to load export library.');
+    await page.unroute(assets['xlsx.full.min.js'].url);
+    assert.deepEqual(pageErrors,[],'Unexpected page errors');
+    console.log('Browser layout, labels and order/invoice recovery checks passed.');
+  } finally {await browser.close();await new Promise(resolve=>server.close(resolve));}
+})().catch(error=>{console.error(error);process.exitCode=1;});

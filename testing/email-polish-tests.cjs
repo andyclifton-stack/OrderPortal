@@ -8,13 +8,18 @@ assert(invoice.includes('Actual total'));assert(!invoice.includes('Estimated tot
 const email=r.api.formatEmailBody_('New request','First line\nSecond line',{id:'X',desc:'<img src=x onerror=alert(1)>',dateNeeded:new Date('2026-11-12T12:00:00Z'),dateExpected:new Date('2026-11-13T12:00:00Z'),link:'javascript:alert(1)',attachment:'javascript:alert(2)'});
 assert(!email.includes('<img'));assert(!email.includes('javascript:'));assert(email.includes('12/11/2026'));assert(email.includes('13/11/2026'));assert(email.includes('First line<br>Second line'));
 const plain=r.api.emailPlainText_(email);assert(plain.includes('View purchase (https://'));assert(!plain.includes('<table'));assert(plain.includes('Not recorded'));
-// Restore the actual transport wrapper while retaining an offline MailApp spy.
+// Exercise the actual notification wrapper with captured service transport.
 vm.runInContext(code.slice(code.indexOf('function sendEmailAlert_('),code.indexOf('function uploadFileToDrive_(')),r.api);
-const sent=[];r.api.MailApp={sendEmail:m=>sent.push(m)};
-r.api.developmentNotificationsSuppressed_=()=>true;
-assert(r.api.sendEmailAlert_('never@example.com','Ignored',email).skipped);assert.equal(sent.length,0);
-r.api.developmentNotificationsSuppressed_=()=>false;r.api.getDevelopmentNotificationEmail_=()=> 'andy.clifton@claremontschool.co.uk';
-assert(r.api.sendEmailAlert_('never@example.com','Test',email).success);assert.equal(sent.length,1);
-assert.equal(sent[0].to,'andy.clifton@claremontschool.co.uk');assert(!sent[0].cc&&!sent[0].bcc);assert(sent[0].subject.startsWith('[DEV TEST]'));
-assert(sent[0].htmlBody.includes('prefers-color-scheme:dark'));assert(sent[0].body.includes('DEV TEST'));assert(sent[0].body.includes('View purchase'));
-console.log('Email polish passed: currency, invoices, dates, escaping, text alternative, DEV suppression and single-recipient redirection. No emails sent.');
+const sent=[];
+r.api.sendDevelopmentServiceEmail_=m=>sent.push(m);
+r.api.sendPortalServiceEmail_=m=>sent.push(m);
+r.setDevelopment(true);
+assert(r.api.sendEmailAlert_('never@example.com','Test',email).success);
+assert.equal(sent.length,1);assert.equal(sent[0].to,'andy.clifton@claremontschool.co.uk');
+assert(!sent[0].cc&&!sent[0].bcc);assert(sent[0].subject.startsWith('[DEV TEST]'));
+assert(sent[0].htmlBody.includes('prefers-color-scheme:dark'));assert(sent[0].body.includes('DEV TEST'));
+r.setDevelopment(false);
+assert(r.api.sendEmailAlert_('requester@example.org','Live test',email).success);
+assert.equal(sent[1].to,'requester@example.org');assert(!sent[1].subject.includes('[DEV TEST]'));
+assert.equal(sent[1].replyTo,'noreply@claremontschool.co.uk');
+console.log('Email templates and DEV/live routing passed with captured service transport.');

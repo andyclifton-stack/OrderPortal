@@ -100,7 +100,7 @@
          window.__portalComponentResult = ok => { clearTimeout(timer); resolve(ok); };
       });
    </script>
-   <script async src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"
+   <script async src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"
       onload="window.__portalComponentResult(!!window.bootstrap)"
       onerror="window.__portalComponentResult(false); window.__portalDependencyFailed('bootstrap-js')"></script>
    <script>
@@ -1352,7 +1352,8 @@
    #mainTabs .nav-link { white-space:normal; min-height:42px; height:100%; padding:.5rem .35rem !important; }
    .portal-entry-card .form-control, .portal-entry-card .form-select { min-height:40px; }
  }
- </style></head>
+ </style><style>@media (max-width:768px) { #orderTable .order-cost-column { width:auto; min-width:0; } }</style>
+</head>
 
 <body class="p-4">
 
@@ -1792,7 +1793,7 @@
                                      style="display:none;" onclick="discardOrderDraft_()">Cancel edit</button>
                                   <button type="button" class="btn btn-outline-secondary me-md-2" onclick="clearOrderForm_()">Clear form</button>
                                  <button type="button" class="btn btn-primary px-5 fw-bold" id="submitBtn"
-                                    onclick="sendOrder()">SUBMIT REQUEST</button>
+                                    onclick="sendOrder()">Submit request</button>
                               </div>
                            </div>
                         </div>
@@ -1977,15 +1978,15 @@
                <div id="orderCorrectionFields" class="border rounded p-3 mb-3" style="display:none;">
                   <div class="fw-bold mb-2">Audited purchase correction</div>
                   <div class="row g-2">
-                     <div class="col-12"><label class="small fw-bold">Department</label><select class="form-select" id="correctionDept"></select></div>
-                     <div class="col-md-6"><label class="small fw-bold">Supplier</label><input class="form-control" id="correctionSupplier" maxlength="200"></div>
-                     <div class="col-md-6"><label class="small fw-bold">Supplier link</label><input class="form-control" id="correctionLink" maxlength="1000"></div>
-                     <div class="col-md-8"><label class="small fw-bold">Description</label><input class="form-control" id="correctionDesc" maxlength="500"></div>
-                     <div class="col-md-4"><label class="small fw-bold">Product code</label><input class="form-control" id="correctionCode" maxlength="100"></div>
-                     <div class="col-md-4"><label class="small fw-bold">Quantity</label><input type="number" min="1" step="1" class="form-control" id="correctionQty"></div>
-                     <div class="col-md-4"><label class="small fw-bold">Unit price (&pound;)</label><input type="number" min="0" step="0.01" class="form-control" id="correctionUnitPrice"></div>
-                     <div class="col-md-4"><label class="small fw-bold">Required date</label><input type="date" class="form-control" id="correctionDateNeeded"></div>
-                     <div class="col-12"><label class="small fw-bold">Delivery location</label><input class="form-control" id="correctionLocation" maxlength="100"></div>
+                     <div class="col-12"><label class="small fw-bold" for="correctionDept">Department</label><select class="form-select" id="correctionDept"></select></div>
+                     <div class="col-md-6"><label class="small fw-bold" for="correctionSupplier">Supplier</label><input class="form-control" id="correctionSupplier" maxlength="200"></div>
+                     <div class="col-md-6"><label class="small fw-bold" for="correctionLink">Supplier link</label><input class="form-control" id="correctionLink" maxlength="1000"></div>
+                     <div class="col-md-8"><label class="small fw-bold" for="correctionDesc">Description</label><input class="form-control" id="correctionDesc" maxlength="500"></div>
+                     <div class="col-md-4"><label class="small fw-bold" for="correctionCode">Product code</label><input class="form-control" id="correctionCode" maxlength="100"></div>
+                     <div class="col-md-4"><label class="small fw-bold" for="correctionQty">Quantity</label><input type="number" min="1" step="1" class="form-control" id="correctionQty"></div>
+                     <div class="col-md-4"><label class="small fw-bold" for="correctionUnitPrice">Unit price (&pound;)</label><input type="number" min="0" step="0.01" class="form-control" id="correctionUnitPrice"></div>
+                     <div class="col-md-4"><label class="small fw-bold" for="correctionDateNeeded">Required date</label><input type="date" class="form-control" id="correctionDateNeeded"></div>
+                     <div class="col-12"><label class="small fw-bold" for="correctionLocation">Delivery location</label><input class="form-control" id="correctionLocation" maxlength="100"></div>
                   </div>
                   <div class="form-text mt-2">Every changed field is recorded privately. A material change to a self-processed purchase starts a new sign-off revision.</div>
                </div>
@@ -2106,16 +2107,13 @@
                <p class="text-muted mb-3">Move available budget from one department to another. This action is applied immediately and recorded in the orders list.</p>
                <div class="row g-3">
                   <div class="col-md-4">
-                     <label class="small fw-bold text-muted">Amount</label>
-                     <input type="number" step="0.01" min="0.01" class="form-control" id="transferAmount">
+                     <label class="small fw-bold text-muted" for="transferAmount">Amount</label><input type="number" step="0.01" min="0.01" class="form-control" id="transferAmount">
                   </div>
                   <div class="col-md-4">
-                     <label class="small fw-bold text-muted">From Department</label>
-                     <select class="form-select" id="transferFromDept"></select>
+                     <label class="small fw-bold text-muted" for="transferFromDept">From Department</label><select class="form-select" id="transferFromDept"></select>
                   </div>
                   <div class="col-md-4">
-                     <label class="small fw-bold text-muted">To Department</label>
-                     <select class="form-select" id="transferToDept"></select>
+                     <label class="small fw-bold text-muted" for="transferToDept">To Department</label><select class="form-select" id="transferToDept"></select>
                   </div>
                </div>
                <div class="alert alert-danger mt-4 mb-0 small">
@@ -3714,6 +3712,7 @@
             btn.classList.remove('disabled');
             if (btn.dataset.defaultText) btn.textContent = btn.dataset.defaultText;
          });
+         updateCreateRecoveryNotice_();
       }
 
       function saveLogInvoice(addAnother, duplicateConfirmation, amountConfirmed) {
@@ -3865,12 +3864,34 @@
             document.getElementById('saveRecoveryNotice').hidden=!(order || invoice);
             document.getElementById('recoverOrderButton').hidden=!order;
             document.getElementById('recoverInvoiceButton').hidden=!invoice;
+            updateSubmissionRecoveryButtons_();
          } catch (_) { /* Submissions fail closed if recovery storage is unavailable. */ }
       }
       let createRecoveryBusy_ = false;
+      function updateSubmissionRecoveryButtons_() {
+         const pendingOrder = !!pendingCreate_('order');
+         const pendingInvoice = !!pendingCreate_('invoice');
+         const orderButton = document.getElementById('submitBtn');
+         if (pendingOrder && !orderSubmitBusy) {
+            orderButton.textContent = createRecoveryBusy_ ? 'Checking previous submission…' : 'Check previous submission';
+            orderButton.disabled = createRecoveryBusy_ || currentUser.isPreview;
+         }
+         if (pendingInvoice && !invoiceSubmitBusy) {
+            const check = document.getElementById('btnInvoiceSaveClose');
+            check.textContent = createRecoveryBusy_ ? 'Checking previous submission…' : 'Check previous submission';
+            check.disabled = createRecoveryBusy_ || currentUser.isPreview;
+            document.getElementById('btnInvoiceAddAnother').disabled = true;
+         }
+      }
       function guardPendingCreate_(kind) {
-         try { if (!pendingCreate_(kind)) return false; recoverPortalCreate_(kind); }
-         catch (_) { showMsg('Submission unavailable','Enable browser storage so interrupted submissions can be checked safely.'); }
+         let pending;
+         try { pending = pendingCreate_(kind); }
+         catch (_) {
+            showMsg('Submission unavailable', 'Enable browser storage so interrupted submissions can be checked safely.');
+            return true;
+         }
+         if (!pending) return false;
+         recoverPortalCreate_(kind);
          return true;
       }
       function recoverPortalCreate_(kind,cancelUnstarted) {
@@ -3880,13 +3901,14 @@
          if (!pending) { updateCreateRecoveryNotice_(); return; }
          createRecoveryBusy_=true;
          let finished=false;
-         const finish=()=>{if(finished)return false;finished=true;clearTimeout(timer);createRecoveryBusy_=false;return true;};
+         const finish=()=>{if(finished)return false;finished=true;clearTimeout(timer);createRecoveryBusy_=false;updateCreateRecoveryNotice_();return true;};
          const timer=setTimeout(()=>{if(finish())showMsg('Status still unknown','The check timed out. Your original reference is preserved. Check again later.');},45000);
-         portalRun_().withSuccessHandler(result=>{
+         updateCreateRecoveryNotice_();
+         try { portalRun_().withSuccessHandler(result=>{
             if(!finish())return;
             if(result.state==='DONE' || result.state==='CANCELLED') {
                forgetCreate_(kind,pending.id);
-               if(kind==='order') {orderRequestId='';orderSubmitBusy=false;if(result.state==='DONE')resetOrderForm_();else {document.getElementById('submitBtn').disabled=false;document.getElementById('submitBtn').innerText='SUBMIT REQUEST';}}
+               if(kind==='order') {orderRequestId='';orderSubmitBusy=false;if(result.state==='DONE')resetOrderForm_();else {document.getElementById('submitBtn').disabled=false;document.getElementById('submitBtn').innerText='Submit request';}}
                else {invoiceRequestId='';resetInvoiceButtons();if(result.state==='DONE')prepLogInvoiceTab(true);}
                loadData({initial:false,preserveState:true,force:true,forceRender:true});
                showMsg(result.state==='DONE'?'Save confirmed':'Earlier attempt cancelled',result.state==='DONE'?'The original '+kind+' was saved'+(result.reference?' as '+result.reference:'')+'. No replacement was submitted.':'The earlier attempt can no longer save. Review the form and select any attachments again before submitting a new request.');
@@ -3894,6 +3916,7 @@
                showConfirm('Cancel the unresolved attempt?', 'No completed save was found. Cancel this attempt safely before preparing a replacement. This also stops a delayed original request from saving.',()=>recoverPortalCreate_(kind,true));
             } else {showMsg('Save still unconfirmed','Do not create a replacement. Check again shortly. If this continues, ask IT to check reference '+pending.id+'.');}
          }).withFailureHandler(()=>{if(finish())showMsg('Status still unknown','Your original reference is preserved. Check again later or contact IT: '+pending.id);}).getPortalSaveStatus(kind,pending.id,cancelUnstarted===true);
+         } catch (_) { if (finish()) showMsg('Recovery unavailable','The previous submission could not be checked. Your reference is preserved. Try checking again.'); }
       }
 
       // Shared bounded wait for existing-record mutations. Their server-side
@@ -4052,9 +4075,9 @@
             let timedOut = false;
             const restoreButton = () => {
                orderSubmitBusy = false;
-               updateCreateRecoveryNotice_();
                submitBtn.innerText = defaultButtonText;
                submitBtn.disabled = false;
+               updateCreateRecoveryNotice_();
             };
 
             submitBtn.innerText = "Sending...";
@@ -6141,6 +6164,8 @@
 
          xlsxLoaderPromise = new Promise((resolve, reject) => {
             const script = document.createElement('script');
+            script.integrity = 'sha384-QCIdq2UMVEoSRhR3ZWZwdz2/pivLowr+eokFMdYyukq7qI26VYRxFa4Nl6FKetmL';
+            script.crossOrigin = 'anonymous';
             script.src = ['https:', '', 'cdn.sheetjs.com', 'xlsx-0.20.1', 'package', 'dist', 'xlsx.full.min.js'].join('/');
             script.async = true;
             script.onload = () => resolve(window.XLSX);

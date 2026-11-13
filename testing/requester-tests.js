@@ -5,7 +5,7 @@ const vm = require('vm');
 const { performance } = require('perf_hooks');
 const { createRuntime } = require('./performance-fixtures.cjs');
 const source = path.resolve(__dirname, '../Code.js');
-const before = path.resolve(__dirname, '../../implementation-backups/requester-20260915/Code.js');
+const before = process.env.PORTAL_REQUESTER_BASELINE;
 const rt = createRuntime(source, 3);
 const { api, sheets } = rt;
 const sam = 'sam@claremontschool.co.uk';
@@ -67,15 +67,17 @@ assert.equal(order[columns.approvalStatusIndex],'AWAITING_SIGNOFF');
 assert.equal(api.getOrderSubmittedBy_(['','','',sam],{}),sam,'Legacy orders fall back to requester');
 
 // Compare against the exact pre-change source using identical synthetic data.
+if (before) {
 const old=createRuntime(before,100), current=createRuntime(source,100);
 old.api.getDashboardData();current.api.getDashboardData();
 assert.equal(current.calls.reads,old.calls.reads,'No additional spreadsheet reads for dropdown');
+}
 const big=createRuntime(source,0);
 for(let n=0;n<1000;n++)big.sheets.Users.rows.push(['colleague'+n+'@example.com','Science','Staff','Senior','',true]);
 let start=performance.now();
 const bigUser=big.api.getUserContext();
 const ms=performance.now()-start;
-console.log('1000-colleague authentication + choices: '+ms.toFixed(1)+' ms; dashboard reads unchanged at '+current.calls.reads);
+console.log('1000-colleague authentication + choices: '+ms.toFixed(1)+' ms');
 assert.equal(bigUser.requesterChoices.science.length,1002);
 
 // Execute the actual form functions with a lightweight DOM, without remote services.

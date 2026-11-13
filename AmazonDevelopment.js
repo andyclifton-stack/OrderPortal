@@ -1,7 +1,7 @@
 // DEV-only synthetic rollout fixtures. Never reads or writes live data.
 function returnDevelopmentPage_() {
   const c=amazonDevelopmentContext_();
-  return HtmlService.createHtmlOutput('<h1>Returns DEV verification</h1><p>Isolated DEV spreadsheet. Notifications suppressed. No live writes.</p><button onclick="this.disabled=true;google.script.run.withSuccessHandler(r=>document.getElementById(\'result\').textContent=JSON.stringify(r,null,2)).withFailureHandler(e=>document.getElementById(\'result\').textContent=e.message).seedReturnDevelopmentFixtures()">Prepare synthetic return tests</button><pre id="result"></pre>');
+  return HtmlService.createHtmlOutput('<h1>Returns DEV verification</h1><p>Isolated DEV spreadsheet. Test emails go only to Andy, marked [DEV TEST]. Chat and error alerts are suppressed. No live writes.</p><button onclick="this.disabled=true;google.script.run.withSuccessHandler(r=>document.getElementById(\'result\').textContent=JSON.stringify(r,null,2)).withFailureHandler(e=>document.getElementById(\'result\').textContent=e.message).seedReturnDevelopmentFixtures()">Prepare synthetic return tests</button><pre id="result"></pre>');
 }
 function seedReturnDevelopmentFixtures() {
   const c=amazonDevelopmentContext_();
@@ -42,7 +42,7 @@ function amazonDevelopmentContext_() {
   const ss = getPortalSpreadsheet_();
   const folder = getPortalAttachmentFolder_();
   if (ss.getId() === '1nUhtnywmnibXPmQNBM78aYVf03BHj3trw-pIHe3ZO34') throw new Error('Live source prohibited.');
-  if (!developmentNotificationsSuppressed_()) throw new Error('Mail must be suppressed.');
+  if (!developmentChatAndErrorAlertsSuppressed_()) throw new Error('DEV Chat and error alerts must be suppressed.');
   return {ss, folder, user};
 }
 
@@ -53,7 +53,7 @@ function orderPortalUsabilityDevelopmentPage_() {
   return HtmlService.createHtmlOutput(`<!doctype html><html lang="en-GB"><meta charset="utf-8">
     <title>Order Portal usability tests</title>
     <body><h1>Order Portal usability tests</h1>
-      <p>Isolated DEV workbook. Notifications are suppressed. Preparing fixtures keeps any existing test changes.</p>
+      <p>Isolated DEV workbook. Test emails go only to Andy, marked [DEV TEST]. Chat and error alerts are suppressed. Preparing fixtures keeps any existing test changes.</p>
       <button id="prepare" type="button">Prepare synthetic DEV fixtures</button>
       <a href="${url}" target="_top">Open DEV Order Portal</a>
       <pre id="result" role="status"></pre>

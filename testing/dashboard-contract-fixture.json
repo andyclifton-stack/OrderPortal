@@ -1,0 +1,98 @@
+{
+  "admin": {
+    "readCeiling": 6,
+    "count": 100,
+    "firstOrders": [
+      {
+        "id": "PERF-99",
+        "dept": "English",
+        "qty": 2,
+        "totalPrice": 25
+      },
+      {
+        "id": "PERF-98",
+        "dept": "Science",
+        "qty": 2,
+        "totalPrice": 25
+      },
+      {
+        "id": "PERF-97",
+        "dept": "English",
+        "qty": 2,
+        "totalPrice": 25
+      }
+    ]
+  },
+  "staff": {
+    "readCeiling": 6,
+    "count": 50,
+    "firstOrders": [
+      {
+        "id": "PERF-98",
+        "dept": "Science",
+        "qty": 2,
+        "totalPrice": 25
+      },
+      {
+        "id": "PERF-96",
+        "dept": "Science",
+        "qty": 2,
+        "totalPrice": 25
+      },
+      {
+        "id": "PERF-94",
+        "dept": "Science",
+        "qty": 2,
+        "totalPrice": 25
+      }
+    ]
+  },
+  "head": {
+    "readCeiling": 6,
+    "count": 50,
+    "firstOrders": [
+      {
+        "id": "PERF-98",
+        "dept": "Science",
+        "qty": 2,
+        "totalPrice": 25
+      },
+      {
+        "id": "PERF-96",
+        "dept": "Science",
+        "qty": 2,
+        "totalPrice": 25
+      },
+      {
+        "id": "PERF-94",
+        "dept": "Science",
+        "qty": 2,
+        "totalPrice": 25
+      }
+    ]
+  },
+  "finance": {
+    "readCeiling": 6,
+    "count": 100,
+    "firstOrders": [
+      {
+        "id": "PERF-99",
+        "dept": "English",
+        "qty": 2,
+        "totalPrice": 25
+      },
+      {
+        "id": "PERF-98",
+        "dept": "Science",
+        "qty": 2,
+        "totalPrice": 25
+      },
+      {
+        "id": "PERF-97",
+        "dept": "English",
+        "qty": 2,
+        "totalPrice": 25
+      }
+    ]
+  }
+}

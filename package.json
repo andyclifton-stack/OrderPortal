@@ -1,0 +1,15 @@
+{
+  "name": "claremont-orderportal",
+  "private": true,
+  "version": "0.0.0",
+  "engines": { "node": "^22.0.0 || ^24.0.0" },
+  "scripts": {
+    "test": "node testing/run-tests.cjs",
+    "test:browser": "node testing/portal-browser-tests.cjs",
+    "test:historical": "node testing/run-historical.cjs",
+    "preview": "node testing/error-ui-server.cjs",
+    "preview:emails": "node testing/notification-design-preview.cjs",
+    "check:upload": "node testing/check-upload.cjs"
+  },
+  "devDependencies": { "playwright": "1.65.0", "@google/clasp": "3.4.1" }
+}

@@ -37,3 +37,11 @@ The upload inventory reads configured file extensions. Its negative test creates
 a temporary project copy under ignored tmp/, adds an unexpected .gs file there,
 verifies rejection, removes its own probe, and
 then the normal check requires exactly the 14 intended application files.
+
+Explicit Clear form / Discard draft now removes the confirmed-purchase marker
+and any in-memory consent for that form. Cancelling discard retains protection;
+unresolved pending-save references are never removed by these actions. No expiry
+is applied. Browser tests cover order clear, order discard, invoice discard,
+cancel, persistence across reload and an unrelated new purchase without a stale
+confirmation. If storage removal fails, a message explains that the next purchase
+may still need confirmation.

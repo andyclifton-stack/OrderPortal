@@ -184,6 +184,44 @@ const assets = require('./vendor/assets.json');
         await page.waitForFunction(kind=>!(kind==='order'?orderSubmitBusy:invoiceSubmitBusy),kind);
       }
     }
+    // Explicit clear/discard removes only the confirmation marker, never a pending save.
+    for(const action of ['clearOrderForm_','discardOrderDraft_','discardInvoiceDraft_']) {
+      const kind=action==='discardInvoiceDraft_'?'invoice':'order';
+      await page.goto(base);
+      await page.waitForFunction(()=>portalDraftReady_ && !portalDraftRestoring_ && !refreshInFlight);
+      await page.evaluate(kind=>{
+        resetOrderForm_();prepLogInvoiceTab(true);localStorage.clear();
+        document.getElementById(kind==='order'?'formDesc':'invDesc').value='Draft to discard';
+        localStorage.setItem(createRecoveryKey_(kind)+':confirmed','previous-saved-purchase');
+        localStorage.setItem(createRecoveryKey_(kind),JSON.stringify({id:'still-pending',kind}));
+      },kind);
+      await page.evaluate(action=>window[action](),action);
+      await page.locator('#confirmModal [data-bs-dismiss]').first().click();
+      await page.locator('#confirmModal').waitFor({state:'hidden'});
+      assert(await page.evaluate(kind=>!!localStorage.getItem(createRecoveryKey_(kind)+':confirmed'),kind),'Cancelling discard keeps protection');
+      await page.evaluate(action=>window[action](),action);
+      await page.locator('#confirmBtnAction').click();
+      await page.locator('#confirmModal').waitFor({state:'hidden'});
+      assert.equal(await page.evaluate(kind=>localStorage.getItem(createRecoveryKey_(kind)+':confirmed'),kind),null);
+      assert.equal(await page.evaluate(kind=>pendingCreate_(kind)?.id,kind),'still-pending','Explicit discard must not forget an unresolved submission');
+      // Remove the synthetic unresolved fixture, then verify a genuinely new purchase.
+      await page.evaluate(kind=>{forgetCreate_(kind,'still-pending');persistPortalDraft_();},kind);
+      await page.reload();
+      await page.waitForFunction(()=>portalDraftReady_ && !portalDraftRestoring_ && !refreshInFlight);
+      assert.equal(await page.evaluate(kind=>localStorage.getItem(createRecoveryKey_(kind)+':confirmed'),kind),null);
+      await page.locator(kind==='order'?'#btnTabNew':'#mainTabs [data-bs-target="#tabLogInvoice"]').click();
+      await page.locator(kind==='order'?'#formSupplier':'#invSupplier').fill('Unrelated new supplier');
+      await page.locator(kind==='order'?'#formDesc':'#invDesc').fill('Unrelated new purchase');
+      await page.locator(kind==='order'?'#formUnit':'#invCost').fill('1.23');
+      if(kind==='invoice') {
+        await page.locator('#invPaymentMethod').selectOption('Invoice / on account');
+        await page.locator('#invReportingSite').selectOption('Senior');
+      }
+      await page.locator(kind==='order'?'#submitBtn':'#btnInvoiceSaveClose').click();
+      await page.waitForFunction(kind=>document.documentElement.dataset[kind==='order'?'mockSubmitCalls':'mockInvoiceCalls']==='1',kind);
+      assert(!(await page.locator('#confirmModal').isVisible()),'Cleared draft must not trigger stale confirmation');
+      await page.waitForFunction(kind=>!(kind==='order'?orderSubmitBusy:invoiceSubmitBusy),kind);
+    }
     // A known, unchanged form in this session can still be cleared on confirmation.
     for(const kind of ['order','invoice']) {
       await page.evaluate(()=>{localStorage.clear();sessionStorage.clear();});

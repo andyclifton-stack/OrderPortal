@@ -33,6 +33,7 @@ function portal(storage, drafts, options = {}) {
     pendingOrderFiles:[],existingOrderAttachments:[],removedOrderAttachments:new Set(),
     editingOrderVersion:'',editingOrderRecord_:null,orderDepartmentTouched_:false,invoiceDepartmentTouched_:false,
     invoiceSubmitBusy:false,invoiceRequestId:'',invoiceRequiredFieldIds:[],
+    clearConfirmedCreate_:kind => { context.clearedConfirmation = kind; },
     createPortalReference_:() => 'test-tab',canDo:() => true,canRecordAlreadyOrdered_:() => !options.disallowOrdered,
     updateRequesterChoices_(){},updateOrderFormGlCode(){},updateInvoiceCreditHint(){},renderOrderAttachments_(){},
     showDraftWarning_:(id,message) => { element(id).textContent = message; },
@@ -125,6 +126,7 @@ function portal(storage, drafts, options = {}) {
   assert.match(reloaded.context.confirmation.message,/Synthetic supplier · Invoice INV-123 · English/);
   assert.equal(reloaded.element('invFiles').files.length,1,'Merely opening confirmation must keep the draft');
   reloaded.context.confirmation.confirm();
+  assert.equal(reloaded.context.clearedConfirmation,'invoice');
   assert.equal(reloaded.context.hasInvoiceDraft_(),false);
   assert.equal(reloaded.element('invInvoiceNumber').value,'');
   assert.equal(reloaded.element('invFiles').files.length,0);

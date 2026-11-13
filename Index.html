@@ -3595,6 +3595,7 @@
          if (invoiceSubmitBusy) return;
          const clear = () => {
             prepLogInvoiceTab(true);
+            clearConfirmedCreate_('invoice');
             persistPortalDraft_();
          };
          if (!hasInvoiceDraft_()) { clear(); return; }
@@ -3883,6 +3884,12 @@
          } catch (_) { return null; }
       }
       const confirmedCreateConsent_ = new Map();
+      function clearConfirmedCreate_(kind) {
+         const key=createRecoveryKey_(kind)+':confirmed';
+         confirmedCreateConsent_.delete(key);
+         try { localStorage.removeItem(key); }
+         catch (_) { showMsg('Draft cleared','The saved confirmation could not be removed from browser storage. You may still be asked to confirm your next purchase.'); }
+      }
       function guardConfirmedCreate_(kind,retry) {
          try {
             const key=createRecoveryKey_(kind)+':confirmed';
@@ -4001,12 +4008,13 @@
       function getOrderCost_(order) { return order.finalPrice !== '' && order.finalPrice != null ? order.finalPrice : order.totalPrice; }
       function discardOrderDraft_() {
          if (orderSubmitBusy) return;
-         showConfirm('Discard unfinished request?', 'The information in this form will be cleared.', () => cancelEdit());
+         showConfirm('Discard unfinished request?', 'The information in this form will be cleared.', () => {cancelEdit();clearConfirmedCreate_('order');persistPortalDraft_();});
       }
       function clearOrderForm_() {
          if (orderSubmitBusy) return;
-         if (!hasOrderDraft_()) { resetOrderForm_(); return; }
-         showConfirm('Clear this form?','The unfinished request and selected files will be cleared.',resetOrderForm_);
+         const clear = () => {resetOrderForm_();clearConfirmedCreate_('order');persistPortalDraft_();};
+         if (!hasOrderDraft_()) { clear(); return; }
+         showConfirm('Clear this form?','The unfinished request and selected files will be cleared.',clear);
          document.getElementById('confirmBtnAction').textContent = 'Clear form';
       }
       window.addEventListener('beforeunload', event => {

@@ -155,6 +155,7 @@ function portalRpc(method, args, context) {
 // Newest first. Entries ship with the change; keep older entries for the archive.
 function getRecentChanges_() {
   return [
+    { date: '2026-11-13', text: 'Checking an earlier submission after a reload keeps your current entries and clearly shows whether they still need saving.' },
     { date: '2026-11-13', text: 'Interrupted submissions now show a clear check action. Finance form labels and cost displays on phones are easier to use.' },
     { date: '2026-11-11', text: 'Remove an invoice record with a reason, without finding the original reference. Removed records keep their attachments and audit history in the Removed records view and are excluded from budgets and reports.' },
     { date: '2026-11-10', text: 'Account preview now shows the new request and invoice forms available to the selected user. You can inspect the forms without saving anything.' },

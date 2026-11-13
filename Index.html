@@ -1792,7 +1792,7 @@
                                  <button type="button" class="btn btn-secondary me-md-2" id="cancelEditBtn"
                                      style="display:none;" onclick="discardOrderDraft_()">Cancel edit</button>
                                   <button type="button" class="btn btn-outline-secondary me-md-2" onclick="clearOrderForm_()">Clear form</button>
-                                 <button type="button" class="btn btn-primary px-5 fw-bold" id="submitBtn"
+                                 <button type="button" class="btn btn-primary px-5 fw-bold" id="submitBtn" data-default-text="Submit request"
                                     onclick="sendOrder()">Submit request</button>
                               </div>
                            </div>
@@ -1848,9 +1848,9 @@
                            </div>
                             <div class="col-12 mt-4 text-end d-grid gap-2 d-md-block">
                                 <button type="button" class="btn btn-outline-secondary me-md-2" id="btnDiscardInvoiceDraft" onclick="discardInvoiceDraft_()">Discard draft</button>
-                               <button type="button" class="btn btn-outline-secondary me-md-2" id="btnInvoiceAddAnother"
+                               <button type="button" class="btn btn-outline-secondary me-md-2" id="btnInvoiceAddAnother" data-default-text="Save &amp; Add Another"
                                   onclick="saveLogInvoice(true)">Save & Add Another</button>
-                               <button type="button" class="btn btn-success px-4" id="btnInvoiceSaveClose" onclick="saveLogInvoice(false)">Save &
+                               <button type="button" class="btn btn-success px-4" id="btnInvoiceSaveClose" data-default-text="Save &amp; Close" onclick="saveLogInvoice(false)">Save &
                                   Close</button>
                             </div>
                         </div>
@@ -3849,6 +3849,7 @@
       function rememberCreate_(kind,id) {
          const existing=pendingCreate_(kind);
          if (existing && existing.id !== id) throw new Error('Check the previous submission first.');
+         if (!existing) createAttemptForms_.set(createRecoveryKey_(kind), {id, snapshot:createFormSnapshot_(kind)});
          localStorage.setItem(createRecoveryKey_(kind),JSON.stringify({id,kind,started:Date.now()}));
          updateCreateRecoveryNotice_();
       }
@@ -3868,19 +3869,33 @@
          } catch (_) { /* Submissions fail closed if recovery storage is unavailable. */ }
       }
       let createRecoveryBusy_ = false;
+      // Keep the original form only in memory. After reload its identity cannot
+      // be proved, so preserve the current draft rather than risk clearing it.
+      const createAttemptForms_ = new Map();
+      function createFormSnapshot_(kind) {
+         const pane = document.getElementById(kind === 'order' ? 'tabNew' : 'tabLogInvoice');
+         const fields = Array.from(pane.querySelectorAll('input,select,textarea')).map(el =>
+            [el.id, el.type === 'checkbox' ? el.checked : el.type === 'file' ? Array.from(el.files).map(draftFileKey_) : el.value]);
+         return JSON.stringify([fields, kind === 'order' ? pendingOrderFiles.map(draftFileKey_) : [],
+            kind === 'order' ? [existingOrderAttachments, [...removedOrderAttachments]] : []]);
+      }
       function updateSubmissionRecoveryButtons_() {
          const pendingOrder = !!pendingCreate_('order');
          const pendingInvoice = !!pendingCreate_('invoice');
          const orderButton = document.getElementById('submitBtn');
-         if (pendingOrder && !orderSubmitBusy) {
-            orderButton.textContent = createRecoveryBusy_ ? 'Checking previous submission…' : 'Check previous submission';
-            orderButton.disabled = createRecoveryBusy_ || currentUser.isPreview;
+         if (!orderSubmitBusy) {
+            const normal = document.getElementById('editingOrderId').value ? 'Save request changes' : document.getElementById('formAlreadyOrdered').checked ? 'Save as ordered' : orderButton.dataset.defaultText;
+            orderButton.textContent = pendingOrder ? (createRecoveryBusy_ ? 'Checking previous submission…' : 'Check previous submission') : normal;
+            orderButton.disabled = !!currentUser.isPreview || (pendingOrder && createRecoveryBusy_);
          }
-         if (pendingInvoice && !invoiceSubmitBusy) {
+         if (!invoiceSubmitBusy) {
             const check = document.getElementById('btnInvoiceSaveClose');
-            check.textContent = createRecoveryBusy_ ? 'Checking previous submission…' : 'Check previous submission';
-            check.disabled = createRecoveryBusy_ || currentUser.isPreview;
-            document.getElementById('btnInvoiceAddAnother').disabled = true;
+            const another = document.getElementById('btnInvoiceAddAnother');
+            check.textContent = pendingInvoice ? (createRecoveryBusy_ ? 'Checking previous submission…' : 'Check previous submission') : check.dataset.defaultText;
+            check.disabled = !!currentUser.isPreview || (pendingInvoice && createRecoveryBusy_);
+            another.textContent = another.dataset.defaultText;
+            another.disabled = !!currentUser.isPreview || pendingInvoice;
+            [check,another].forEach(button => button.classList.toggle('disabled',button.disabled));
          }
       }
       function guardPendingCreate_(kind) {
@@ -3907,11 +3922,18 @@
          try { portalRun_().withSuccessHandler(result=>{
             if(!finish())return;
             if(result.state==='DONE' || result.state==='CANCELLED') {
+               const key = createRecoveryKey_(kind);
+               const original = createAttemptForms_.get(key);
+               const unchanged = original?.id === pending.id && original.snapshot === createFormSnapshot_(kind);
+               const keepDraft = result.state === 'DONE' && !unchanged;
+               createAttemptForms_.delete(key);
                forgetCreate_(kind,pending.id);
-               if(kind==='order') {orderRequestId='';orderSubmitBusy=false;if(result.state==='DONE')resetOrderForm_();else {document.getElementById('submitBtn').disabled=false;document.getElementById('submitBtn').innerText='Submit request';}}
-               else {invoiceRequestId='';resetInvoiceButtons();if(result.state==='DONE')prepLogInvoiceTab(true);}
+               if(kind==='order') {orderRequestId='';orderSubmitBusy=false;if(result.state==='DONE' && unchanged)resetOrderForm_();}
+               else {invoiceRequestId='';resetInvoiceButtons();if(result.state==='DONE' && unchanged)prepLogInvoiceTab(true);}
+               updateCreateRecoveryNotice_();
+               queuePortalDraftSave_();
                loadData({initial:false,preserveState:true,force:true,forceRender:true});
-               showMsg(result.state==='DONE'?'Save confirmed':'Earlier attempt cancelled',result.state==='DONE'?'The original '+kind+' was saved'+(result.reference?' as '+result.reference:'')+'. No replacement was submitted.':'The earlier attempt can no longer save. Review the form and select any attachments again before submitting a new request.');
+               showMsg(result.state==='DONE'?'Save confirmed':'Earlier attempt cancelled',result.state==='DONE'?'The original '+kind+' was saved'+(result.reference?' as '+result.reference:'')+'. No replacement was submitted.'+(keepDraft ? ' Your current entries and selected attachments have been kept. They have not been submitted as a new '+kind+'. Review them before saving again to avoid repeating the original purchase.' : ''):'The earlier attempt can no longer save. Your current entries have been kept. Review the form and attachments before submitting a new request.');
             } else if(result.state==='NOT_FOUND' || result.state==='FAILED') {
                showConfirm('Cancel the unresolved attempt?', 'No completed save was found. Cancel this attempt safely before preparing a replacement. This also stops a delayed original request from saving.',()=>recoverPortalCreate_(kind,true));
             } else {showMsg('Save still unconfirmed','Do not create a replacement. Check again shortly. If this continues, ask IT to check reference '+pending.id+'.');}
@@ -3983,6 +4005,7 @@
          document.getElementById('unitPriceRequiredMark').hidden = active;
          document.getElementById('orderFormModeHelp').textContent = active ? 'Record the purchase already placed with the supplier. An earlier estimate is optional.' : '';
          if (!orderSubmitBusy) document.getElementById('submitBtn').innerText = editing ? 'Save request changes' : active ? 'Save as ordered' : 'Submit request';
+         updateCreateRecoveryNotice_();
          updateOrderBudgetWarning_();
       }
       function sendOrder() {
@@ -6847,7 +6870,7 @@
          pane.addEventListener('input',queuePortalDraftSave_);
          pane.addEventListener('change',queuePortalDraftSave_);
       }
-      document.getElementById('mainTabs').addEventListener('shown.bs.tab',queuePortalDraftSave_);
+      document.getElementById('mainTabs').addEventListener('shown.bs.tab',() => {queuePortalDraftSave_();updateCreateRecoveryNotice_();});
       document.getElementById('invFiles').addEventListener('change',event => {
          if (event.target.files.length) showDraftFilesNotice_('invoiceDraftFileNotice','');
       });
@@ -6931,6 +6954,7 @@
          }
 
          } finally { applyingOrderPage_=false; }
+         updateCreateRecoveryNotice_();
          startAutoRefreshIfNeeded_();
          openApprovalDeepLink_();
       }

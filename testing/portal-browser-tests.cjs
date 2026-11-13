@@ -37,6 +37,14 @@ const assets = require('./vendor/assets.json');
       });
       assert(!dimensions.overflow,`Page overflow at ${width}`);
       if (width<=768) assert(dimensions.cost>105,`Cost remains fixed width at ${width}`);
+      const marker = page.locator('.cost-difference-value').first();
+      assert(await marker.isVisible(),`Price-difference marker missing at ${width}`);
+      const markerFits = await marker.evaluate(el => {
+        const r=el.getBoundingClientRect(), cell=el.closest('td').getBoundingClientRect();
+        const style=getComputedStyle(el);
+        return style.textDecorationLine.includes('underline') && style.textDecorationStyle==='dotted' && r.width>0 && r.left>=cell.left && r.right<=cell.right+1 && r.right<=innerWidth;
+      });
+      assert(markerFits,`Price-difference marker clipped at ${width}`);
       await page.screenshot({path:path.join(output,`portal-${width}.png`),fullPage:true});
     }
     const unnamed = await page.evaluate(()=>Array.from(document.querySelectorAll('[id^="correction"],#transferAmount,#transferFromDept,#transferToDept'))
@@ -77,6 +85,69 @@ const assets = require('./vendor/assets.json');
     await page.waitForFunction(()=>document.documentElement.dataset.mockStatusCalls==='1');
     assert.equal(await page.evaluate(()=>document.documentElement.dataset.mockSubmitCalls),'1');
     assert(await page.evaluate(()=>!!pendingCreate_('order')));
+    // Reload recovery must preserve new work and never turn a check into a save.
+    for (const kind of ['order','invoice']) {
+      for (const state of ['PENDING','DONE','CANCELLED']) {
+        await page.evaluate(()=>{localStorage.clear();sessionStorage.clear();});
+        await page.goto(base+'/?mockSaveState='+state);
+        await page.waitForFunction(()=>document.querySelector('#mainApp').style.display !== 'none');
+        await page.evaluate(kind=>rememberCreate_(kind,'reload-'+kind),kind);
+        await page.reload();
+        await page.waitForFunction(()=>document.querySelector('#mainApp').style.display !== 'none');
+        assert(await page.locator('#saveRecoveryNotice').isVisible());
+        await page.locator(kind==='order' ? '#btnTabNew' : '#mainTabs [data-bs-target="#tabLogInvoice"]').click();
+        const button=page.locator(kind==='order' ? '#submitBtn' : '#btnInvoiceSaveClose');
+        assert.equal(await button.textContent(),'Check previous submission');
+        if(kind==='invoice') assert(await page.locator('#btnInvoiceAddAnother').isDisabled());
+        const description=page.locator(kind==='order' ? '#formDesc' : '#invDesc');
+        await description.fill('New work after reload '+kind);
+        if(kind==='invoice') await page.locator('#invFiles').setInputFiles({name:'new-invoice.txt',mimeType:'text/plain',buffer:Buffer.from('synthetic attachment')});
+        else await page.evaluate(()=>pendingOrderFiles.push(new File(['synthetic'],'new-order.txt',{type:'text/plain'})));
+        await button.click();
+        await page.waitForFunction(()=>document.documentElement.dataset.mockStatusCalls==='1');
+        await page.waitForFunction(()=>!createRecoveryBusy_);
+        await page.waitForFunction(()=>!refreshInFlight);
+        assert.equal(await description.inputValue(),'New work after reload '+kind);
+        assert.equal(await page.evaluate(()=>Number(document.documentElement.dataset.mockSubmitCalls||0)),0);
+        assert.equal(await page.evaluate(()=>Number(document.documentElement.dataset.mockInvoiceCalls||0)),0);
+        assert.equal(await page.evaluate(kind=>kind==='order'?pendingOrderFiles.length:document.querySelector('#invFiles').files.length,kind),1);
+        if(state==='PENDING') {
+          assert.equal(await button.textContent(),'Check previous submission');
+          assert(await page.locator('#saveRecoveryNotice').isVisible());
+        } else {
+          assert.equal(await button.textContent(),kind==='order'?'Submit request':'Save & Close');
+          assert.equal(await page.evaluate(kind=>!!pendingCreate_(kind),kind),false);
+          assert(!(await page.locator('#saveRecoveryNotice').isVisible()));
+          if(kind==='invoice') assert(await page.locator('#btnInvoiceAddAnother').isEnabled());
+          if(state==='DONE') assert.match(await page.locator('#msgBody').textContent(),/current entries.*kept.*not been submitted/);
+        }
+      }
+    }
+    // A known, unchanged form in this session can still be cleared on confirmation.
+    for(const kind of ['order','invoice']) {
+      await page.evaluate(()=>{localStorage.clear();sessionStorage.clear();});
+      await page.goto(base+'/?mockSaveState=DONE');
+      await page.waitForFunction(()=>document.querySelector('#mainApp').style.display !== 'none');
+      await page.evaluate(kind=>{
+        document.getElementById(kind==='order'?'formDesc':'invDesc').value='Original unchanged';
+        rememberCreate_(kind,'unchanged-'+kind);recoverPortalCreate_(kind);
+      },kind);
+      await page.waitForFunction(kind=>!pendingCreate_(kind),kind);
+      assert.equal(await page.locator(kind==='order'?'#formDesc':'#invDesc').inputValue(),'');
+    }
+    await page.evaluate(()=>{
+      currentUser.isPreview=true;updateCreateRecoveryNotice_();
+    });
+    for(const id of ['submitBtn','btnInvoiceSaveClose','btnInvoiceAddAnother']) assert(await page.locator('#'+id).isDisabled(),'Preview must remain read-only');
+    await page.evaluate(()=>{
+      currentUser.isPreview=false;orderSubmitBusy=true;invoiceSubmitBusy=true;
+      for(const id of ['submitBtn','btnInvoiceSaveClose','btnInvoiceAddAnother']) {const b=document.getElementById(id);b.textContent='Saving...';b.disabled=true;}
+      updateCreateRecoveryNotice_();
+    });
+    for(const id of ['submitBtn','btnInvoiceSaveClose','btnInvoiceAddAnother']) {
+      assert(await page.locator('#'+id).isDisabled());
+      assert.equal(await page.locator('#'+id).textContent(),'Saving...');
+    }
     // SRI failures must take the existing component failure path.
     await page.route(base+'/',async route=>{
       const response = await route.fetch();

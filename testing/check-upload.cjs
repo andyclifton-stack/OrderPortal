@@ -9,7 +9,7 @@ const expected = ['AmazonDevelopment.js','Code.js','DevelopmentSender.js','Index
   const config = JSON.parse(fs.readFileSync(path.join(root,'.clasp.json'),'utf8'));
   const files = new Files({project:config,configFilePath:path.join(root,'.clasp.json'),files:{
     projectRootDir:root,contentDir:root,ignorePatterns:fs.readFileSync(path.join(root,'.claspignore'),'utf8').split(/\r?\n/).filter(Boolean),
-    fileExtensions:{SERVER_JS:['.js'],HTML:['.html'],JSON:['.json']}
+    fileExtensions:{SERVER_JS:config.scriptExtensions || ['.gs','.js'],HTML:config.htmlExtensions || ['.html'],JSON:config.jsonExtensions || ['.json']}
   }});
   const result = await files.collectLocalFiles();
   const selected = result.files.map(file=>path.relative(root,path.resolve(file.localPath)).replaceAll('\\','/')).sort();

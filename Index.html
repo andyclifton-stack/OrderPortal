@@ -3723,6 +3723,7 @@
             return;
          }
          if (guardPendingCreate_('invoice')) return;
+         if (guardConfirmedCreate_('invoice',() => saveLogInvoice(addAnother,duplicateConfirmation,amountConfirmed))) return;
          clearRequiredFieldErrors(invoiceRequiredFieldIds);
          const invValidation = validateInvoiceForm();
          if (!invValidation.isValid) {
@@ -3744,6 +3745,7 @@
             showMsg('Attachments', 'Choose up to five files, each no larger than 5 MB.'); return;
          }
          invoiceSubmitBusy = true;
+         const submittedInvoiceSnapshot = createFormSnapshot_('invoice');
          invoiceRequestId = invoiceRequestId || createPortalReference_('OPI');
          setInvoiceButtonsSaving(addAnother ? 'btnInvoiceAddAnother' : 'btnInvoiceSaveClose');
          showProcessing('Saving invoice…');
@@ -3764,7 +3766,7 @@
             }
          }
 
-         Promise.all(filePromises).then(fileObjs => {
+         Promise.all(filePromises).then(async fileObjs => {
             const invData = {
                clientRequestId: invoiceRequestId,
                duplicateConfirmation: duplicateConfirmation || "",
@@ -3776,7 +3778,7 @@
                files: fileObjs
             };
 
-              rememberCreate_('invoice',invData.clientRequestId);
+              await rememberCreate_('invoice',invData.clientRequestId,submittedInvoiceSnapshot);
               let invoiceSettled=false;
               const invoiceTimer = setTimeout(() => {
                  if(invoiceSettled)return;invoiceSettled=true;
@@ -3846,11 +3848,16 @@
          return 'claremont-create:' + (globalData.meta?.environment || 'unknown') + ':' + identity + ':' + kind;
       }
       function pendingCreate_(kind) { const value=localStorage.getItem(createRecoveryKey_(kind)); return value ? JSON.parse(value) : null; }
-      function rememberCreate_(kind,id) {
+      async function rememberCreate_(kind,id,snapshot = createFormSnapshot_(kind)) {
          const existing=pendingCreate_(kind);
          if (existing && existing.id !== id) throw new Error('Check the previous submission first.');
-         if (!existing) createAttemptForms_.set(createRecoveryKey_(kind), {id, snapshot:createFormSnapshot_(kind)});
-         localStorage.setItem(createRecoveryKey_(kind),JSON.stringify({id,kind,started:Date.now()}));
+         const record = existing || {id,kind,started:Date.now()};
+         localStorage.setItem(createRecoveryKey_(kind),JSON.stringify(record));
+         if (!existing) {
+            record.fingerprint = await createFormFingerprint_(snapshot);
+            localStorage.setItem(createRecoveryKey_(kind),JSON.stringify(record));
+         }
+         localStorage.removeItem(createRecoveryKey_(kind)+':confirmed');
          updateCreateRecoveryNotice_();
       }
       function forgetCreate_(kind,id) {
@@ -3869,14 +3876,34 @@
          } catch (_) { /* Submissions fail closed if recovery storage is unavailable. */ }
       }
       let createRecoveryBusy_ = false;
-      // Keep the original form only in memory. After reload its identity cannot
-      // be proved, so preserve the current draft rather than risk clearing it.
-      const createAttemptForms_ = new Map();
+      async function createFormFingerprint_(snapshot) {
+         try {
+            const digest = await crypto.subtle.digest('SHA-256',new TextEncoder().encode(snapshot));
+            return 'sha256-v1:'+Array.from(new Uint8Array(digest),byte=>byte.toString(16).padStart(2,'0')).join('');
+         } catch (_) { return null; }
+      }
+      const confirmedCreateConsent_ = new Map();
+      function guardConfirmedCreate_(kind,retry) {
+         try {
+            const key=createRecoveryKey_(kind)+':confirmed';
+            const reference=localStorage.getItem(key);
+            if (!reference) return false;
+            const snapshot=createFormSnapshot_(kind);
+            const consent=confirmedCreateConsent_.get(key);
+            confirmedCreateConsent_.delete(key);
+            if(consent?.reference===reference && consent.snapshot===snapshot) return false;
+            showConfirm('Submit as a new purchase?', 'The earlier '+kind+' '+reference+' was confirmed as saved. Submit the current entries as a separate new purchase?',()=>{
+               confirmedCreateConsent_.set(key,{reference,snapshot});retry();
+            });
+            document.getElementById('confirmBtnAction').textContent='Submit as new purchase';
+            return true;
+         } catch (_) { showMsg('Submission unavailable','Browser storage could not be checked. Reload before submitting again.');return true; }
+      }
       function createFormSnapshot_(kind) {
          const pane = document.getElementById(kind === 'order' ? 'tabNew' : 'tabLogInvoice');
-         const fields = Array.from(pane.querySelectorAll('input,select,textarea')).map(el =>
-            [el.id, el.type === 'checkbox' ? el.checked : el.type === 'file' ? Array.from(el.files).map(draftFileKey_) : el.value]);
-         return JSON.stringify([fields, kind === 'order' ? pendingOrderFiles.map(draftFileKey_) : [],
+         const fields = Array.from(pane.querySelectorAll('input,select,textarea')).filter(el=>el.type!=='file' && !['formGlCode','formTotal'].includes(el.id)).map(el =>
+            [el.id, el.type === 'checkbox' ? el.checked : el.value]);
+         return JSON.stringify([fields, (kind === 'order' ? pendingOrderFiles : Array.from(document.getElementById('invFiles').files)).map(draftFileKey_),
             kind === 'order' ? [existingOrderAttachments, [...removedOrderAttachments]] : []]);
       }
       function updateSubmissionRecoveryButtons_() {
@@ -3919,14 +3946,20 @@
          const finish=()=>{if(finished)return false;finished=true;clearTimeout(timer);createRecoveryBusy_=false;updateCreateRecoveryNotice_();return true;};
          const timer=setTimeout(()=>{if(finish())showMsg('Status still unknown','The check timed out. Your original reference is preserved. Check again later.');},45000);
          updateCreateRecoveryNotice_();
-         try { portalRun_().withSuccessHandler(result=>{
-            if(!finish())return;
+         try { portalRun_().withSuccessHandler(async result=>{
+            if(finished)return;
             if(result.state==='DONE' || result.state==='CANCELLED') {
                const key = createRecoveryKey_(kind);
-               const original = createAttemptForms_.get(key);
-               const unchanged = original?.id === pending.id && original.snapshot === createFormSnapshot_(kind);
+               const snapshot=createFormSnapshot_(kind);
+               const fingerprint=await createFormFingerprint_(snapshot);
+               if(finished)return;
+               const unchanged = !!fingerprint && fingerprint===pending.fingerprint && snapshot===createFormSnapshot_(kind);
                const keepDraft = result.state === 'DONE' && !unchanged;
-               createAttemptForms_.delete(key);
+               try {
+                  if(keepDraft) localStorage.setItem(key+':confirmed',result.reference || pending.id);
+                  else localStorage.removeItem(key+':confirmed');
+               } catch (_) { if(finish())showMsg('Recovery unavailable','The result could not be stored safely. Your entries and original reference have been kept. Check again before submitting.');return; }
+               if(!finish())return;
                forgetCreate_(kind,pending.id);
                if(kind==='order') {orderRequestId='';orderSubmitBusy=false;if(result.state==='DONE' && unchanged)resetOrderForm_();}
                else {invoiceRequestId='';resetInvoiceButtons();if(result.state==='DONE' && unchanged)prepLogInvoiceTab(true);}
@@ -3935,8 +3968,9 @@
                loadData({initial:false,preserveState:true,force:true,forceRender:true});
                showMsg(result.state==='DONE'?'Save confirmed':'Earlier attempt cancelled',result.state==='DONE'?'The original '+kind+' was saved'+(result.reference?' as '+result.reference:'')+'. No replacement was submitted.'+(keepDraft ? ' Your current entries and selected attachments have been kept. They have not been submitted as a new '+kind+'. Review them before saving again to avoid repeating the original purchase.' : ''):'The earlier attempt can no longer save. Your current entries have been kept. Review the form and attachments before submitting a new request.');
             } else if(result.state==='NOT_FOUND' || result.state==='FAILED') {
+               if(!finish())return;
                showConfirm('Cancel the unresolved attempt?', 'No completed save was found. Cancel this attempt safely before preparing a replacement. This also stops a delayed original request from saving.',()=>recoverPortalCreate_(kind,true));
-            } else {showMsg('Save still unconfirmed','Do not create a replacement. Check again shortly. If this continues, ask IT to check reference '+pending.id+'.');}
+            } else {if(finish())showMsg('Save still unconfirmed','Do not create a replacement. Check again shortly. If this continues, ask IT to check reference '+pending.id+'.');}
          }).withFailureHandler(()=>{if(finish())showMsg('Status still unknown','Your original reference is preserved. Check again later or contact IT: '+pending.id);}).getPortalSaveStatus(kind,pending.id,cancelUnstarted===true);
          } catch (_) { if (finish()) showMsg('Recovery unavailable','The previous submission could not be checked. Your reference is preserved. Try checking again.'); }
       }
@@ -4013,6 +4047,7 @@
          if (confirmMissingDraftFiles_('orderDraftFileNotice',sendOrder)) return;
          const isEdit = !!document.getElementById('editingOrderId').value;
          if (!isEdit && guardPendingCreate_('order')) return;
+         if (!isEdit && guardConfirmedCreate_('order',sendOrder)) return;
          if (isEdit && !editingOrderRecord_?.actions?.canEdit) {
             showMsg("Access Denied", "You do not have permission to edit existing orders.");
             return;
@@ -4088,12 +4123,13 @@
                clientRequestId: submissionReference
             };
 
-         const processSubmit = (fileObjs) => {
+         const submittedOrderSnapshot = createFormSnapshot_('order');
+         const processSubmit = async (fileObjs) => {
             const submitBtn = document.getElementById('submitBtn');
             const defaultButtonText = originalSubmitText;
             const orderObj = Object.assign({}, orderSnapshot, { files: fileObjs });
 
-            if (!isEdit) rememberCreate_('order',submissionReference);
+            if (!isEdit) await rememberCreate_('order',submissionReference,submittedOrderSnapshot);
             let settled = false;
             let timedOut = false;
             const restoreButton = () => {

@@ -50,12 +50,12 @@ const assets = require('./vendor/assets.json');
     const unnamed = await page.evaluate(()=>Array.from(document.querySelectorAll('[id^="correction"],#transferAmount,#transferFromDept,#transferToDept'))
       .filter(el=>el.matches('input,select,textarea') && !el.labels?.length && !el.getAttribute('aria-label')).map(el=>el.id));
     assert.deepEqual(unnamed,[]);
-    await page.evaluate(()=>{rememberCreate_('order','synthetic-recovery');orderSubmitBusy=false;updateCreateRecoveryNotice_();});
+    await page.evaluate(async()=>{await rememberCreate_('order','synthetic-recovery');orderSubmitBusy=false;updateCreateRecoveryNotice_();});
     assert.equal(await page.locator('#submitBtn').textContent(),'Check previous submission');
     await page.evaluate(()=>guardPendingCreate_('order'));
     await page.waitForFunction(()=>document.documentElement.dataset.mockStatusCalls==='1');
     await page.waitForFunction(()=>!pendingCreate_('order'));
-    await page.evaluate(()=>{rememberCreate_('invoice','synthetic-invoice');invoiceSubmitBusy=false;resetInvoiceButtons();});
+    await page.evaluate(async()=>{await rememberCreate_('invoice','synthetic-invoice');invoiceSubmitBusy=false;resetInvoiceButtons();});
     assert.equal(await page.locator('#btnInvoiceSaveClose').textContent(),'Check previous submission');
     assert(await page.locator('#btnInvoiceAddAnother').isDisabled());
     await page.evaluate(()=>{window.portalRun={withSuccessHandler(){throw Error('Synthetic recovery failure');}};guardPendingCreate_('invoice');});
@@ -123,14 +123,75 @@ const assets = require('./vendor/assets.json');
         }
       }
     }
+    // Full real-submit timeout lifecycle, including the click AFTER recovery.
+    for(const kind of ['order','invoice']) for(const variant of ['unchanged','changed','legacy','unavailable']) {
+      await page.evaluate(()=>{resetOrderForm_();prepLogInvoiceTab(true);localStorage.clear();sessionStorage.clear();persistPortalDraft_();});
+      await page.goto(base+'/?mockSubmit=timeout&mockSaveState=DONE');
+      await page.waitForFunction(()=>portalDraftReady_ && !portalDraftRestoring_ && !refreshInFlight);
+      const tab=kind==='order'?'#btnTabNew':'#mainTabs [data-bs-target="#tabLogInvoice"]';
+      const desc=kind==='order'?'#formDesc':'#invDesc';
+      const button=kind==='order'?'#submitBtn':'#btnInvoiceSaveClose';
+      const counter=kind==='order'?'mockSubmitCalls':'mockInvoiceCalls';
+      await page.locator(tab).click();
+      await page.locator(kind==='order'?'#formSupplier':'#invSupplier').fill('Synthetic next-click supplier');
+      await page.locator(desc).fill('Original next-click purchase');
+      await page.locator(kind==='order'?'#formUnit':'#invCost').fill('1.23');
+      if(kind==='invoice') {
+        await page.locator('#invPaymentMethod').selectOption('Invoice / on account');
+        await page.locator('#invReportingSite').selectOption('Senior');
+      }
+      if(variant==='unavailable') await page.evaluate(()=>{createFormFingerprint_=async()=>null;});
+      await page.locator(button).click();
+      await page.waitForFunction(counter=>document.documentElement.dataset[counter]==='1',counter);
+      await page.waitForFunction(kind=>!(kind==='order'?orderSubmitBusy:invoiceSubmitBusy),kind);
+      const pending=await page.evaluate(kind=>pendingCreate_(kind),kind);
+      if(variant==='unavailable') assert.equal(pending.fingerprint,null);
+      else assert.match(pending.fingerprint,/^sha256-v1:[a-f0-9]{64}$/);
+      assert(!JSON.stringify(pending).includes('Original next-click purchase'),'Recovery storage contains hashes, not form text');
+      if(variant==='legacy') await page.evaluate(kind=>{
+        const record=pendingCreate_(kind);delete record.fingerprint;localStorage.setItem(createRecoveryKey_(kind),JSON.stringify(record));
+      },kind);
+      await page.evaluate(()=>persistPortalDraft_());
+      await page.reload();
+      await page.waitForFunction(()=>portalDraftReady_ && !portalDraftRestoring_ && !refreshInFlight);
+      await page.locator(tab).click();
+      assert.equal(await page.locator(desc).inputValue(),'Original next-click purchase','Original draft must actually be restored for this test');
+      if(variant==='changed') await page.locator(desc).fill('Different new purchase');
+      await page.locator(button).click();
+      await page.waitForFunction(kind=>!pendingCreate_(kind) && !refreshInFlight && !createRecoveryBusy_,kind);
+      assert.equal(await page.evaluate(counter=>Number(document.documentElement.dataset[counter]||0),counter),0);
+      await page.locator('#msgModal [data-bs-dismiss]').click();
+      if(variant==='unchanged') {
+        assert.equal(await page.locator(desc).inputValue(),'');
+        await page.locator(button).click();
+        assert.equal(await page.evaluate(counter=>Number(document.documentElement.dataset[counter]||0),counter),0,'Next click on the cleared form must not resubmit');
+      } else {
+        assert.equal(await page.locator(desc).inputValue(),variant==='changed'?'Different new purchase':'Original next-click purchase');
+        // A legacy/retained draft requires explicit consent, including after another reload.
+        await page.evaluate(()=>persistPortalDraft_());
+        await page.reload();
+        await page.waitForFunction(()=>portalDraftReady_ && !portalDraftRestoring_ && !refreshInFlight);
+        await page.locator(tab).click();
+        await page.locator(button).click();
+        await page.locator('#confirmModal').waitFor({state:'visible'});
+        assert.match(await page.locator('#confirmModal').textContent(),/confirmed as saved.*separate new purchase/);
+        assert.equal(await page.evaluate(counter=>Number(document.documentElement.dataset[counter]||0),counter),0);
+        await page.locator('#confirmModal [data-bs-dismiss]').first().click();
+        assert.equal(await page.evaluate(counter=>Number(document.documentElement.dataset[counter]||0),counter),0,'Cancel never submits');
+        await page.locator(button).click();
+        await page.locator('#confirmBtnAction').click();
+        await page.waitForFunction(counter=>document.documentElement.dataset[counter]==='1',counter);
+        await page.waitForFunction(kind=>!(kind==='order'?orderSubmitBusy:invoiceSubmitBusy),kind);
+      }
+    }
     // A known, unchanged form in this session can still be cleared on confirmation.
     for(const kind of ['order','invoice']) {
       await page.evaluate(()=>{localStorage.clear();sessionStorage.clear();});
       await page.goto(base+'/?mockSaveState=DONE');
       await page.waitForFunction(()=>document.querySelector('#mainApp').style.display !== 'none');
-      await page.evaluate(kind=>{
+      await page.evaluate(async kind=>{
         document.getElementById(kind==='order'?'formDesc':'invDesc').value='Original unchanged';
-        rememberCreate_(kind,'unchanged-'+kind);recoverPortalCreate_(kind);
+        await rememberCreate_(kind,'unchanged-'+kind);recoverPortalCreate_(kind);
       },kind);
       await page.waitForFunction(kind=>!pendingCreate_(kind),kind);
       assert.equal(await page.locator(kind==='order'?'#formDesc':'#invDesc').inputValue(),'');

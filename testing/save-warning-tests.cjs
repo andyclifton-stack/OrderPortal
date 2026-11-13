@@ -8,7 +8,7 @@ function setup(storage=new Map()) {
  const c={document:{getElementById:element,querySelector:()=>({})},localStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},
   globalData:{meta:{environment:'test'}},currentUser:{email:'test@example.com'},orderSubmitBusy:false,invoiceSubmitBusy:false,invoiceRequestId:'',invoiceRequiredFieldIds:[],SUBMIT_REQUEST_TIMEOUT_MS:45000,
   canDo:()=>true,clearRequiredFieldErrors(){},markRequiredFieldError(){},hasBudgetCalculationError_:()=>false,createPortalReference_:()=> 'request-1',
-  portalRun_:()=>run,confirmMissingDraftFiles_:()=>false,queuePortalDraftSave_(){},createAttemptForms_:new Map(),createFormSnapshot_:()=> 'synthetic unchanged form',
+  portalRun_:()=>run,confirmMissingDraftFiles_:()=>false,queuePortalDraftSave_(){},guardConfirmedCreate_:()=>false,createFormFingerprint_:async()=> 'sha256-v1:synthetic',createFormSnapshot_:()=> 'synthetic unchanged form',
   validateInvoiceForm:()=>({isValid:true,values:{dept:'Science',supplier:'Test',desc:'Test',cost:1,paymentMethod:'Credit card'}}),
   normalizeWriteResponse_:v=>v,showProcessing(){element('overlay').style.display='flex';},showMsg(){},showSavedResult_(){},setTimeout:fn=>{timers.push(fn);return timers.length;},clearTimeout(){},google:{script:{run}}};
  vm.createContext(c);
@@ -35,7 +35,7 @@ function setup(storage=new Map()) {
  const reloaded=setup(t.storage);reloaded.c.updateCreateRecoveryNotice_();
  assert.equal(reloaded.elements.saveRecoveryNotice.hidden,false,'Reload restores interrupted-save warning');
  assert.equal(reloaded.elements.recoverInvoiceButton.hidden,false);
- t.c.orderSubmitBusy=false;t.c.rememberCreate_('order','old-order');
+ t.c.orderSubmitBusy=false;await t.c.rememberCreate_('order','old-order');
  assert.equal(t.elements.saveRecoveryNotice.hidden,false,'An active invoice must not hide an unresolved order');
  assert.equal(t.elements.recoverOrderButton.hidden,false);
  assert.equal(t.elements.recoverInvoiceButton.hidden,true);

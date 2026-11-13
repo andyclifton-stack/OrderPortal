@@ -1056,6 +1056,7 @@ if (typeof window !== 'undefined') {
 
                     proxy.logInvoice = function (data) {
                         document.documentElement.dataset.mockInvoiceCalls = String(Number(document.documentElement.dataset.mockInvoiceCalls || 0) + 1);
+                        if (new URLSearchParams(location.search).get('mockSubmit') === 'timeout') return;
                         console.log("Mock Call: logInvoice", JSON.stringify(data));
                         setTimeout(() => {
                             if (success) success({ success: true, saved: true, message: "Invoice logged successfully." });

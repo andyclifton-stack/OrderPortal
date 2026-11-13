@@ -1,0 +1,17 @@
+{
+  "darkMode": "class",
+  "theme": {
+    "extend": {
+      "colors": {
+        "primary": "#2C3E75", "secondary": "#FBBF24", "success": "#10B981", "danger": "#EF4444",
+        "background-light": "#F3F4F6", "background-dark": "#09090B",
+        "surface-light": "#FFFFFF", "surface-dark": "#141416",
+        "border-light": "#E5E7EB", "border-dark": "#2B2B2F",
+        "text-light": "#1F2937", "text-dark": "#E4E4E7",
+        "text-muted-light": "#6B7280", "text-muted-dark": "#A1A1AA"
+      },
+      "fontFamily": { "display": ["Inter", "sans-serif"] },
+      "borderRadius": { "DEFAULT": "0.5rem" }
+    }
+  }
+}

@@ -1,4 +1,16 @@
 # AGENT INSTRUCTIONS - READ FIRST
+## Recent changes
+- For each user-facing update or fix, add a concise, non-technical entry to `getRecentChanges_()` in `Code.js`, newest first, using the live release date.
+- Include the entry in the same dev testing and live release as its change. Update the date if release is delayed.
+- Combine related small fixes; omit routine data entry and individual record corrections. Preserve older entries; the page shows ten initially with an expandable history.
+
+## Release history retention
+- When Andy requests a live release on the existing unchanged URL, also commit and push the corresponding source and tests to GitHub. Verify the remote commit and report both the live deployment and GitHub results before calling the release complete. Exclude credentials, real school records, temporary files, backups, and generated evidence from Git commits.
+- Keep the current live release and the five previous releases for rollback, plus any older version still required by an active deployment, trigger, or known library consumer.
+- Keep a local source backup before publishing. Update the existing live deployment so its URL stays unchanged.
+- Review unused Apps Script versions periodically during releases, before approaching Google's version limit. Use the Apps Script project-history UI for version cleanup; the deployment manager has no cleanup command.
+- Verify trigger dependencies in the Apps Script Triggers screen as part of cleanup. On 2 October 2026, weeklyFinanceSchedule was observed using live version 214 after the existing deployment was updated from 213; the earlier version 201 reference was obsolete.
+
 **CRITICAL:** I have a custom automation tool. You must use it for all Google Apps Script tasks.
 
 **My Deployment Tool:** "C:\Projects\clasp_manager.bat"

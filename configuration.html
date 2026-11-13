@@ -1,0 +1,2140 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <base target="_top">
+  <!-- Cloudflare Web Analytics -->
+  <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js"
+    data-cf-beacon='{"token":"aa6bbf85d6dd47d9b142a3ce47e1b233"}'></script>
+  <!-- End Cloudflare Web Analytics -->
+  <title>Claremont Order Portal - Configuration</title>
+  <script>
+    if (typeof google === 'undefined') {
+      document.write('<script src="local-mock.js?v=20260803-ui-fixes-1"><\/script>');
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <style>
+    :root {
+      --brand-blue: #283583;
+      --brand-blue-dark: #1d2768;
+      --brand-gold: #fab600;
+      --page-bg: #f5f7fb;
+      --panel-bg: #ffffff;
+      --soft-bg: #f8f9fc;
+      --text-main: #202534;
+      --text-muted: #667085;
+      --line: #dfe3eb;
+      --success-soft: #e9f7ef;
+      --warning-soft: #fff7df;
+      --danger-soft: #fff0f0;
+      --shadow: 0 10px 30px rgba(40, 53, 131, 0.08);
+    }
+
+    [data-theme="dark"] {
+      --page-bg: #09090b;
+      --panel-bg: #141416;
+      --soft-bg: #242427;
+      --text-main: #e4e4e7;
+      --text-muted: #a1a1aa;
+      --line: #2b2b2f;
+      --success-soft: #1b2921;
+      --warning-soft: #2b241b;
+      --danger-soft: #302023;
+      --shadow: 0 12px 32px rgba(0, 0, 0, 0.26);
+      color-scheme: dark;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      font-size: 14px;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      background: var(--page-bg);
+      color: var(--text-main);
+      font-family: "Open Sans", sans-serif;
+      min-height: 100vh;
+    }
+
+    .text-muted {
+      color: var(--text-muted) !important;
+    }
+
+    .text-body {
+      color: var(--text-main) !important;
+    }
+
+    .topbar {
+      background: var(--panel-bg);
+      border-bottom: 1px solid var(--line);
+      position: sticky;
+      top: 0;
+      z-index: 1020;
+    }
+
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      background: var(--brand-blue);
+      color: #fff;
+      font-size: 1.15rem;
+    }
+
+    .brand-kicker {
+      color: var(--brand-blue);
+      font-size: .72rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    [data-theme="dark"] .brand-kicker {
+      color: #aeb8ff;
+    }
+
+    .preview-banner {
+      background: linear-gradient(90deg, #fff3cd, #fff9e9);
+      border-bottom: 1px solid #ebd88a;
+      color: #5d4a08;
+    }
+
+    [data-theme="dark"] .preview-banner {
+      background: #3f3414;
+      border-color: #68571d;
+      color: #ffeaa0;
+    }
+
+    .page-shell {
+      max-width: 1480px;
+      margin: 0 auto;
+      padding: 30px 24px 60px;
+    }
+
+    .hero-copy {
+      max-width: 760px;
+    }
+
+    .hero-copy h1 {
+      font-size: 2rem;
+      line-height: 1.2;
+    }
+
+    .eyebrow {
+      color: var(--brand-blue);
+      font-size: .78rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    [data-theme="dark"] .eyebrow {
+      color: #b8c0ff;
+    }
+
+    .panel,
+    .summary-card,
+    .side-nav {
+      background: var(--panel-bg);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+
+    .summary-card {
+      border-radius: 16px;
+      padding: 20px;
+      height: 100%;
+    }
+
+    .summary-card .h3 {
+      font-size: 1.5rem;
+    }
+
+    .summary-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      background: #edf0ff;
+      color: var(--brand-blue);
+      font-size: 1.2rem;
+    }
+
+    [data-theme="dark"] .summary-icon {
+      background: #303c77;
+      color: #d5d9ff;
+    }
+
+    .side-nav {
+      border-radius: 16px;
+      padding: 12px;
+      position: sticky;
+      scrollbar-width: none;
+      top: 112px;
+    }
+
+    .side-nav::-webkit-scrollbar {
+      display: none;
+    }
+
+    .side-nav-link {
+      align-items: center;
+      background: transparent;
+      border: 0;
+      border-radius: 10px;
+      color: var(--text-muted);
+      display: flex;
+      font-size: .9rem;
+      font-weight: 600;
+      gap: 10px;
+      padding: 12px;
+      text-align: left;
+      text-decoration: none;
+      width: 100%;
+    }
+
+    .side-nav-link:hover,
+    .side-nav-link:focus-visible {
+      background: var(--soft-bg);
+      color: var(--brand-blue);
+      outline: none;
+    }
+
+    .panel {
+      border-radius: 18px;
+      margin-bottom: 26px;
+      overflow: hidden;
+      scroll-margin-top: 122px;
+    }
+
+    .panel-header {
+      border-bottom: 1px solid var(--line);
+      padding: 24px;
+    }
+
+    .section-toggle {
+      align-items: center;
+      background: transparent;
+      border: 0;
+      color: inherit;
+      display: flex;
+      flex: 1 1 auto;
+      gap: 18px;
+      justify-content: space-between;
+      margin: -8px;
+      min-width: 0;
+      padding: 8px;
+      text-align: left;
+    }
+
+    .section-toggle:hover [role="heading"] {
+      color: var(--brand-blue);
+    }
+
+    .section-toggle [role="heading"] {
+      font-size: 1.2rem;
+      line-height: 1.3;
+    }
+
+    .section-toggle .text-muted {
+      font-size: .875rem;
+      line-height: 1.45;
+    }
+
+    .section-toggle:focus-visible {
+      border-radius: 10px;
+      box-shadow: 0 0 0 .2rem rgba(40, 53, 131, .18);
+      outline: none;
+    }
+
+    .section-chevron {
+      color: var(--text-muted);
+      flex: 0 0 auto;
+      font-size: 1.1rem;
+      transition: transform .2s ease;
+    }
+
+    .section-toggle[aria-expanded="true"] .section-chevron {
+      transform: rotate(180deg);
+    }
+
+    .panel-body {
+      padding: 24px;
+    }
+
+    .guidance {
+      background: var(--soft-bg);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      color: var(--text-muted);
+      font-size: .88rem;
+      padding: 14px 16px;
+    }
+
+    .form-control,
+    .form-select,
+    .input-group-text,
+    .modal-content {
+      background-color: var(--panel-bg);
+      border-color: var(--line);
+      color: var(--text-main);
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+      background-color: var(--panel-bg);
+      color: var(--text-main);
+      border-color: var(--brand-blue);
+      box-shadow: 0 0 0 .2rem rgba(40, 53, 131, .14);
+    }
+
+    .readonly-field {
+      background: var(--soft-bg) !important;
+      color: var(--text-muted) !important;
+    }
+
+    .table {
+      --bs-table-bg: transparent;
+      --bs-table-color: var(--text-main);
+      --bs-table-border-color: var(--line);
+      margin-bottom: 0;
+    }
+
+    .table thead th {
+      color: var(--text-muted);
+      font-size: .72rem;
+      letter-spacing: .055em;
+      padding-bottom: 13px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .table tbody td {
+      padding-bottom: 14px;
+      padding-top: 14px;
+      vertical-align: middle;
+    }
+
+    .user-access-table-region { overflow-x:auto; overscroll-behavior-inline:contain; }
+    .user-access-table-region:focus-visible { outline:2px solid var(--contrast-action); outline-offset:2px; }
+    .user-access-table { min-width:43rem; }
+    .user-access-table .user-identity, .user-access-table .user-action { white-space:nowrap; }
+    .user-access-table .user-role { min-width:8rem; overflow-wrap:anywhere; }
+    .user-access-table .user-departments { min-width:9rem; }
+    .user-access-table .dependency-badge { white-space:normal; overflow-wrap:anywhere; text-align:left; }
+
+    .role-badge,
+    .dependency-badge {
+      background: var(--soft-bg);
+      border: 1px solid var(--line);
+      color: var(--text-main);
+      font-size: .75rem;
+      font-weight: 600;
+    }
+
+    .status-active {
+      background: var(--success-soft);
+      color: #247447;
+    }
+
+    [data-theme="dark"] .status-active {
+      color: #8ed4ac;
+    }
+
+    .status-inactive {
+      background: var(--danger-soft);
+      color: #9a3030;
+    }
+
+    [data-theme="dark"] .status-inactive {
+      color: #f1a2a2;
+    }
+
+    .inactive-row {
+      opacity: .72;
+    }
+
+    .toast-success {
+      background: var(--success-soft);
+      color: var(--text-main);
+    }
+
+    .toast-danger {
+      background: var(--danger-soft);
+      color: var(--text-main);
+    }
+
+    .system-row {
+      background: var(--soft-bg);
+    }
+
+    .audit-table {
+      font-size: .82rem;
+    }
+
+    .audit-table tbody td {
+      padding-bottom: 9px;
+      padding-top: 9px;
+    }
+
+    .audit-time {
+      min-width: 140px;
+      white-space: nowrap;
+    }
+
+    .audit-user {
+      min-width: 230px;
+      white-space: nowrap;
+    }
+
+    .audit-details {
+      min-width: 220px;
+      overflow-wrap: anywhere;
+    }
+
+    .audit-action {
+      background: var(--soft-bg);
+      border: 1px solid var(--line);
+      color: var(--text-main);
+      font-size: .72rem;
+      font-weight: 700;
+    }
+
+    .money-negative {
+      color: #c03838;
+      font-weight: 700;
+    }
+
+    .btn-brand {
+      background: var(--brand-blue);
+      border-color: var(--brand-blue);
+      color: #fff;
+    }
+
+    .btn-brand:hover,
+    .btn-brand:focus {
+      background: var(--brand-blue-dark);
+      border-color: var(--brand-blue-dark);
+      color: #fff;
+    }
+
+    .btn-preview-disabled:disabled {
+      background: #99a0b2;
+      border-color: #99a0b2;
+      color: #fff;
+      cursor: not-allowed;
+      opacity: 1;
+    }
+
+    .empty-state {
+      color: var(--text-muted);
+      padding: 38px 20px;
+      text-align: center;
+    }
+
+    .loading-screen {
+      align-items: center;
+      background: var(--page-bg);
+      display: flex;
+      inset: 0;
+      justify-content: center;
+      position: fixed;
+      z-index: 2000;
+    }
+
+    .error-screen {
+      display: none;
+      margin: 9vh auto;
+      max-width: 620px;
+      padding: 24px;
+    }
+
+    .validation-box {
+      border-radius: 12px;
+      font-size: .86rem;
+      padding: 12px 14px;
+    }
+
+    .validation-box.warning {
+      background: var(--warning-soft);
+      color: #7a5a00;
+    }
+
+    .validation-box.danger {
+      background: var(--danger-soft);
+      color: #9a3030;
+    }
+
+    .validation-box.success {
+      background: var(--success-soft);
+      color: #247447;
+    }
+
+    [data-theme="dark"] .validation-box.warning {
+      color: #f5d875;
+    }
+
+    [data-theme="dark"] .validation-box.danger {
+      color: #f1a2a2;
+    }
+
+    [data-theme="dark"] .validation-box.success {
+      color: #92d6ae;
+    }
+
+    .role-guide {
+      border-left: 3px solid var(--brand-blue);
+      padding-left: 12px;
+    }
+
+    .modal-header,
+    .modal-footer {
+      border-color: var(--line);
+    }
+
+    .modal-backdrop.show {
+      opacity: .56;
+    }
+
+    @media (max-width: 991.98px) {
+      .page-shell {
+        padding: 22px 16px 48px;
+      }
+
+      .side-nav {
+        display: flex;
+        gap: 4px;
+        overflow-x: auto;
+        position: static;
+        white-space: nowrap;
+      }
+
+      .side-nav-link {
+        flex: 0 0 auto;
+        width: auto;
+      }
+    }
+
+    .access-picker {
+      border:1px solid var(--line);
+      border-radius:8px;
+      padding:.75rem;
+    }
+    .access-options {
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0, 1fr));
+      gap:.25rem .75rem;
+      max-height:11rem;
+      overflow:auto;
+      overscroll-behavior:contain;
+      padding:.2rem .25rem;
+    }
+    .access-option { display:flex; gap:.55rem; align-items:flex-start; min-width:0; padding:.4rem .3rem; }
+    .access-option[hidden] { display:none; }
+    .access-option:hover { background:var(--soft-bg); border-radius:5px; }
+    .access-option label { cursor:pointer; overflow-wrap:anywhere; }
+    .access-option .form-check-input { flex:none; }
+    .access-option .form-check-input:disabled + label { cursor:default; opacity:.75; }
+    .mobile-cell-value { overflow-wrap:anywhere; }
+    #effectiveAccessSummary li + li { margin-top:.25rem; }
+
+    @media (max-width: 767.98px) {
+      .topbar .brand-kicker,
+      .topbar .configuration-brand-wide {
+        display: none;
+      }
+      .topbar .brand-mark { flex:none; width:34px; height:34px; border-radius:8px; }
+
+      .panel-header,
+      .panel-body {
+        padding: 18px;
+      }
+
+      .table-responsive {
+        border: 0;
+      }
+
+      .table-mobile-cards thead {
+        display: none;
+      }
+
+      .table-mobile-cards tbody,
+      .table-mobile-cards tr,
+      .table-mobile-cards td {
+        display: block;
+        width: 100%;
+      }
+
+      .table-mobile-cards tr {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        margin-bottom: 14px;
+        padding: 12px;
+      }
+
+      .table-mobile-cards td {
+        border: 0;
+        display: grid;
+        grid-template-columns:minmax(0, 36%) minmax(0, 1fr);
+        gap: 10px;
+        align-items:start;
+        padding: 7px 0;
+        text-align: right;
+      }
+
+      .table-mobile-cards td::before {
+        color: var(--text-muted);
+        content: attr(data-label);
+        font-size: .72rem;
+        font-weight: 700;
+        letter-spacing: .04em;
+        text-align: left;
+        text-transform: uppercase;
+      }
+
+      .audit-time,
+      .audit-user,
+      .audit-details {
+        min-width: 0;
+        white-space: normal;
+      }
+    }
+
+    @media (max-width: 575.98px) {
+      .access-options { grid-template-columns:minmax(0, 1fr); max-height:9rem; }
+      .configuration-counts { --bs-gutter-x:.5rem; }
+      .configuration-counts .summary-card { display:block !important; padding:.75rem .35rem; text-align:center; height:100%; }
+      .configuration-counts .summary-icon { display:none; }
+      .configuration-counts .small { font-size:.76rem; overflow-wrap:anywhere; }
+      .configuration-counts .h3 { font-variant-numeric:tabular-nums; }
+      #userModal .modal-footer .me-auto { margin-right:0 !important; }
+    }
+  </style>
+<style>
+.portal-loading { min-height:100vh; padding:24px; background:#f4f6f9; color:#25324b; font-family:Arial,sans-serif; }
+.portal-loading-inner { max-width:1280px; margin:auto; }
+.portal-loading-brand { border-bottom:4px solid #ffc107; padding-bottom:18px; margin-bottom:16px; }
+.portal-loading-brand strong { display:block; color:#283583; font-size:24px; }
+.portal-loading-brand small { display:block; margin-top:4px; }
+.portal-loading-notice { display:flex; align-items:center; gap:16px; background:#fff; border-left:4px solid #283583; border-radius:6px; padding:16px 20px; margin-bottom:16px; }
+.portal-loading-notice strong,.portal-loading-notice small { display:block; }
+.portal-loading-notice small { margin-top:4px; }
+.portal-loading-dot { width:18px; height:18px; flex-shrink:0; border:2px solid #ddd; border-top-color:#283583; border-radius:50%; animation:portal-spin 1s linear infinite; }
+.portal-loading-cards { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:20px; }
+.portal-loading-card { background:#fff; padding:20px; border-radius:8px; box-shadow:0 2px 8px #0000000a; }
+.portal-loading-bar { background:#e0e0e0; border-radius:4px; height:32px; margin-top:16px; }
+.portal-loading-row { height:40px; margin-top:12px; }
+.dark .portal-loading,[data-theme="dark"] .portal-loading { background:#09090b; color:#e4e4e7; }
+.dark .portal-loading-card,.dark .portal-loading-notice,[data-theme="dark"] .portal-loading-card,[data-theme="dark"] .portal-loading-notice { background:#141416; }
+.dark .portal-loading-brand strong,[data-theme="dark"] .portal-loading-brand strong { color:#e4e4e7; }
+.dark .portal-loading-bar,[data-theme="dark"] .portal-loading-bar { background:#242427; }
+@keyframes portal-spin { to { transform:rotate(360deg); } }
+@media(max-width:600px) { .portal-loading { padding:16px; } .portal-loading-cards { grid-template-columns:1fr; } }
+@media(prefers-reduced-motion:reduce) { .portal-loading-dot { animation:none; } }
+</style>
+<?!= includePortalStyles_('SharedPolish'); ?>
+<?!= includePortalStyles_('SharedDropdowns'); ?>
+<?!= includePortalStyles_('PortalClientContext'); ?>
+</head>
+
+<body>
+<div id="loadingScreen" class="portal-loading"><div class="portal-loading-inner">
+<div class="portal-loading-brand"><strong>CLAREMONT SCHOOL</strong><small>Purchasing Portal · Configuration</small></div>
+<div class="portal-loading-notice" role="status" aria-live="polite" aria-atomic="true"><span class="portal-loading-dot" aria-hidden="true"></span><div><strong>Loading configuration…</strong><small>Controls will become available when everything is ready.</small></div></div>
+<div inert aria-hidden="true"><div class="portal-loading-cards"><div class="portal-loading-card">Departments<div class="portal-loading-bar"></div></div><div class="portal-loading-card">Users<div class="portal-loading-bar"></div></div><div class="portal-loading-card">Settings<div class="portal-loading-bar"></div></div></div>
+<div class="portal-loading-card">Configuration<div class="portal-loading-bar portal-loading-row"></div><div class="portal-loading-bar portal-loading-row"></div><div class="portal-loading-bar portal-loading-row"></div><div class="portal-loading-bar portal-loading-row"></div><div class="portal-loading-bar portal-loading-row"></div></div></div>
+</div></div>
+
+  <main class="error-screen" id="errorScreen" aria-live="assertive">
+    <div class="panel p-4 text-center">
+      <div class="summary-icon mx-auto mb-3"><i class="bi bi-shield-lock"></i></div>
+      <h1 class="h4" id="errorTitle">Configuration unavailable</h1>
+      <p class="text-muted" id="errorMessage">This page could not be loaded.</p>
+      <button class="btn btn-brand" id="errorBackLink" type="button" onclick="closeConfigurationWorkspace()"><i class="bi bi-x-lg me-2"></i>Close Configuration</button>
+    </div>
+  </main>
+
+  <div id="workspace" style="display:none">
+    <header class="topbar">
+      <div class="container-fluid px-3 px-md-4 py-3 d-flex align-items-center justify-content-between gap-3">
+        <div class="d-flex align-items-center gap-3">
+          <div class="brand-mark"><i class="bi bi-sliders"></i></div>
+          <div>
+            <div class="brand-kicker">Claremont School</div>
+            <div class="fw-bold brand-subtitle">
+              <span class="configuration-brand-wide">Order Portal Configuration</span>
+              <span class="d-md-none">Configuration</span>
+            </div>
+          </div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <a class="btn btn-outline-secondary btn-sm" href="<?= appUrl ?>" target="_top">Orders</a>
+          <button class="btn btn-outline-secondary btn-sm" type="button" onclick="toggleTheme()" aria-label="Toggle colour theme">
+            <i class="bi bi-moon-stars-fill" id="themeIcon"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <div class="page-shell" role="main">
+      <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-end gap-3 mb-4">
+        <div class="hero-copy">
+          <div class="eyebrow mb-2">Admin workspace</div>
+          <h1 class="display-6 fw-bold mb-2">Configuration</h1>
+          <p class="text-muted mb-0">Manage department budgets, user access and portal settings.</p>
+        </div>
+        <div class="small text-muted">
+          Signed in as<br><strong id="signedInEmail" class="text-body"></strong>
+        </div>
+      </div>
+
+      <div class="row g-3 mb-4 configuration-counts">
+        <div class="col-4">
+          <div class="summary-card d-flex align-items-center gap-3">
+            <div class="summary-icon"><i class="bi bi-diagram-3"></i></div>
+            <div><div class="h3 fw-bold mb-0" id="departmentCount">—</div><div class="small text-muted">Departments</div></div>
+          </div>
+        </div>
+        <div class="col-4">
+          <div class="summary-card d-flex align-items-center gap-3">
+            <div class="summary-icon"><i class="bi bi-people"></i></div>
+            <div><div class="h3 fw-bold mb-0" id="userCount">—</div><div class="small text-muted">Active users</div></div>
+          </div>
+        </div>
+        <div class="col-4">
+          <div class="summary-card d-flex align-items-center gap-3">
+            <div class="summary-icon"><i class="bi bi-shield-check"></i></div>
+            <div><div class="h3 fw-bold mb-0" id="adminCount">—</div><div class="small text-muted">Administrators</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-4">
+        <aside class="col-lg-3">
+          <nav class="side-nav" aria-label="Configuration sections">
+            <button class="side-nav-link" type="button" data-section-target="departments"><i class="bi bi-wallet2"></i>Departments & Budgets</button>
+            <button class="side-nav-link" type="button" data-section-target="users"><i class="bi bi-person-gear"></i>Users & Access</button>
+            <button class="side-nav-link" type="button" data-section-target="system-settings"><i class="bi bi-envelope-gear"></i>System Settings</button>
+            <button class="side-nav-link" type="button" data-section-target="weekly-report"><i class="bi bi-file-earmark-bar-graph"></i>Weekly Finance Report</button>
+            <button class="side-nav-link" type="button" data-section-target="audit"><i class="bi bi-clock-history"></i>Configuration Audit</button>
+          </nav>
+        </aside>
+
+        <div class="col-lg-9">
+          <section class="panel" id="departments">
+            <div class="panel-header d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3">
+              <button class="section-toggle" type="button" data-section-toggle="departments" aria-expanded="false" aria-controls="departmentsBody">
+                <span>
+                  <span class="h4 fw-bold mb-1 d-block" role="heading" aria-level="2">Departments & Budgets</span>
+                  <span class="text-muted d-block">One active allocation and GL code for each department.</span>
+                </span>
+                <i class="bi bi-chevron-down section-chevron" aria-hidden="true"></i>
+              </button>
+              <button class="btn btn-brand" type="button" onclick="openBudgetDraft()"><i class="bi bi-plus-lg me-2"></i>Add department</button>
+            </div>
+            <div class="collapse" id="departmentsBody">
+              <div class="panel-body">
+              <div class="guidance mb-4">
+                <i class="bi bi-info-circle me-2"></i><strong>Calculated values are protected.</strong> Spent and remaining come from order records. Renames update matching user assignments and order history together.
+              </div>
+              <div class="row g-2 mb-3">
+                <div class="col-md-7">
+                  <label class="visually-hidden" for="budgetSearch">Search departments</label>
+                  <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input class="form-control" id="budgetSearch" type="search" placeholder="Search department or GL code">
+                  </div>
+                </div>
+                <div class="col-md-5">
+                  <label class="visually-hidden" for="budgetStatusFilter">Filter departments by status</label>
+                  <select class="form-select" id="budgetStatusFilter">
+                    <option value="">All statuses</option>
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                  </select>
+                </div>
+              </div>
+              <p id="budgetResultCount" class="small text-muted mb-2" role="status"></p>
+              <div class="table-responsive">
+                <table class="table table-mobile-cards align-middle">
+                  <thead>
+                    <tr>
+                      <th>Department</th>
+                      <th class="money-heading">Allocation</th>
+                      <th class="money-heading">Spent</th>
+                      <th class="money-heading">Remaining</th>
+                      <th>GL code</th>
+                      <th>Used by</th>
+                      <th>Status</th>
+                      <th class="text-end">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="budgetRows"></tbody>
+                </table>
+              </div>
+              <div class="empty-state" id="budgetEmpty" style="display:none">
+                <i class="bi bi-search fs-3 d-block mb-2"></i><strong>No departments to show</strong>Try changing your search or filters.
+              </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel" id="users">
+            <div class="panel-header d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3">
+              <button class="section-toggle" type="button" data-section-toggle="users" aria-expanded="false" aria-controls="usersBody">
+                <span>
+                  <span class="h4 fw-bold mb-1 d-block" role="heading" aria-level="2">Users & Access</span>
+                  <span class="text-muted d-block">Who can use the portal, what they can see, and which role they have.</span>
+                </span>
+                <i class="bi bi-chevron-down section-chevron" aria-hidden="true"></i>
+              </button>
+              <button class="btn btn-brand" type="button" onclick="openUserDraft()"><i class="bi bi-person-plus me-2"></i>Add user</button>
+            </div>
+            <div class="collapse" id="usersBody">
+              <div class="panel-body">
+              <div class="guidance mb-4">
+                <i class="bi bi-shield-check me-2"></i>Users are deactivated rather than deleted. The current account and the final active Admin are protected from deactivation.
+              </div>
+              <div class="row g-2 mb-3">
+                <div class="col-md-6">
+                  <label class="visually-hidden" for="userSearch">Search users</label>
+                  <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input class="form-control" id="userSearch" type="search" placeholder="Search email or department">
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <label class="visually-hidden" for="roleFilter">Filter by role</label>
+                  <select class="form-select" id="roleFilter"><option value="">All roles</option></select>
+                </div>
+                <div class="col-md-3">
+                  <label class="visually-hidden" for="userStatusFilter">Filter users by status</label>
+                  <select class="form-select" id="userStatusFilter">
+                    <option value="">All statuses</option>
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                  </select>
+                </div>
+              </div>
+              <p id="userResultCount" class="small text-muted mb-2" role="status"></p>
+              <p class="small text-muted mb-2 d-lg-none">Scroll the table sideways to see all columns.</p>
+              <div class="table-responsive user-access-table-region" role="region" aria-label="User access table" tabindex="0">
+                <table class="table user-access-table align-middle">
+                  <thead>
+                    <tr>
+                      <th scope="col">School email</th>
+                      <th scope="col">Role</th>
+                      <th scope="col">Departments</th>
+                      <th scope="col">Default site</th>
+                      <th scope="col">Status</th>
+                      <th scope="col" class="text-end">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="userRows"></tbody>
+                </table>
+              </div>
+              <div class="empty-state" id="userEmpty" style="display:none">
+                <i class="bi bi-search fs-3 d-block mb-2"></i><strong>No users to show</strong>Try changing your search or filters.
+              </div>
+              <div class="row g-3 mt-3" id="roleGuide"></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel" id="system-settings">
+            <div class="panel-header">
+              <button class="section-toggle w-100" type="button" data-section-toggle="system-settings" aria-expanded="false" aria-controls="systemSettingsBody">
+                <span>
+                  <span class="h4 fw-bold mb-1 d-block" role="heading" aria-level="2">System Settings</span>
+                  <span class="text-muted d-block">Addresses used for finance notifications and outgoing portal messages.</span>
+                </span>
+                <i class="bi bi-chevron-down section-chevron" aria-hidden="true"></i>
+              </button>
+            </div>
+            <div class="collapse" id="systemSettingsBody">
+              <div class="panel-body">
+              <div class="guidance mb-4">
+                <i class="bi bi-envelope-check me-2"></i>The sender alias is shown for reference and remains managed in Google as an authorised “Send mail as” address.
+              </div>
+              <form id="settingsForm" novalidate>
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label fw-bold" for="financeEmail">Finance notification email</label>
+                    <input class="form-control" id="financeEmail" type="email" autocomplete="off">
+                    <div class="form-text">Order requests, alerts and replies are routed here.</div>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label fw-bold" for="senderAlias">Sender alias</label>
+                    <input class="form-control readonly-field" id="senderAlias" type="email" autocomplete="off" readonly aria-readonly="true">
+                    <div class="form-text"><i class="bi bi-lock me-1"></i>Managed in Google and cannot be changed from this portal.</div>
+                  </div>
+                </div>
+                <div id="settingsValidation" class="validation-box success mt-3" aria-live="polite">Current values are ready to review.</div>
+                <div class="d-flex flex-column flex-sm-row justify-content-end align-items-sm-center gap-2 mt-4">
+                  <span class="small text-muted"><i class="bi bi-shield-check me-1"></i>Changes are validated and audited.</span>
+                  <button class="btn btn-brand" id="saveSettingsButton" type="button" onclick="saveSystemSettings()">Save system settings</button>
+                </div>
+              </form>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel" id="weekly-report">
+            <div class="panel-header">
+              <button class="section-toggle w-100" type="button" data-section-toggle="weekly-report" aria-expanded="false" aria-controls="weeklyReportBody">
+                <span>
+                  <span class="h4 fw-bold mb-1 d-block" role="heading" aria-level="2">Weekly finance report</span>
+                  <span class="text-muted d-block">Previous Monday-Sunday activity, with the current order and budget position.</span>
+                </span>
+                <i class="bi bi-chevron-down section-chevron" aria-hidden="true"></i>
+              </button>
+            </div>
+            <div class="collapse" id="weeklyReportBody">
+            <div class="panel-body">
+              <p id="weeklyReportTo" class="guidance">Loading report settings...</p>
+              <label class="form-label fw-bold" for="weeklyReportCc">Weekly report CC recipients</label>
+              <textarea id="weeklyReportCc" class="form-control" rows="3" aria-describedby="weeklyReportCcHelp"></textarea>
+              <div id="weeklyReportCcHelp" class="form-text">One email address per line. These recipients apply only to weekly reports.</div>
+              <div class="form-check form-switch my-3"><input class="form-check-input" type="checkbox" id="weeklyReportEnabled"><label class="form-check-label" for="weeklyReportEnabled">Send automatically on Mondays shortly after 7 am (UK time)</label></div>
+              <p id="weeklyReportMode" class="small text-muted"></p>
+              <div class="d-flex flex-wrap gap-2">
+                <button type="button" class="btn btn-brand" id="weeklyReportSave" onclick="saveWeeklyReport()" disabled>Save report settings</button>
+                <button type="button" class="btn btn-outline-secondary" id="weeklyReportPreview" onclick="weeklyReportAction('preview')" disabled>Preview real-data PDF</button>
+                <button type="button" class="btn btn-outline-secondary d-none" id="weeklyReportSend" onclick="confirmWeeklyReportSend()">Send live report now</button>
+              </div>
+              <div id="weeklyReportResult" class="mt-3" role="status" aria-live="polite"></div>
+              <p class="small text-muted mt-2" id="weeklyReportLast"></p>
+            </div>
+            </div>
+          </section>
+
+          <section class="panel" id="audit">
+            <div class="panel-header">
+              <button class="section-toggle w-100" type="button" data-section-toggle="audit" aria-expanded="false" aria-controls="auditBody">
+                <span>
+                  <span class="h4 fw-bold mb-1 d-block" role="heading" aria-level="2">Configuration Audit</span>
+                  <span class="text-muted d-block">A compact record of saved changes made through this workspace.</span>
+                </span>
+                <i class="bi bi-chevron-down section-chevron" aria-hidden="true"></i>
+              </button>
+            </div>
+            <div class="collapse" id="auditBody">
+              <div class="panel-body">
+                <div class="guidance mb-3">
+                  <i class="bi bi-shield-lock me-2"></i><strong>Read only.</strong> This records saved configuration changes made through the portal. Unsaved edits and manual Master Sheet changes are not included.
+                </div>
+                <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-2">
+                  <div class="small text-muted" id="auditMessage"></div>
+                  <span class="badge role-badge" id="auditCount">0 changes</span>
+                </div>
+                <div class="table-responsive" id="auditTableWrap">
+                  <table class="table table-mobile-cards audit-table align-middle">
+                    <thead>
+                      <tr>
+                        <th>When</th>
+                        <th>User</th>
+                        <th>Change</th>
+                        <th>Item and details</th>
+                      </tr>
+                    </thead>
+                    <tbody id="auditRows"></tbody>
+                  </table>
+                </div>
+                <div class="empty-state" id="auditEmpty" style="display:none">
+                  <i class="bi bi-clock-history fs-3 d-block mb-2"></i>
+                  <div class="fw-bold mb-1">No saved configuration changes yet</div>
+                  <div class="small">The first successful configuration change will appear here.</div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="budgetModal" tabindex="-1" aria-labelledby="budgetModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div>
+            <div class="eyebrow mb-1">Admin configuration</div>
+            <h2 class="modal-title h5 fw-bold" id="budgetModalTitle">Add department</h2>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="budgetOriginalName">
+          <div class="row g-3">
+            <div class="col-md-7">
+              <label class="form-label fw-bold" for="budgetDepartment">Department name</label>
+              <input class="form-control" id="budgetDepartment" type="text" maxlength="80">
+              <div class="form-text">Use the same clear name everywhere in the portal.</div>
+            </div>
+            <div class="col-md-5">
+              <label class="form-label fw-bold" for="budgetGlCode">GL code</label>
+              <input class="form-control" id="budgetGlCode" type="text" maxlength="50">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-bold" for="budgetAllocation">Total allocation</label>
+              <div class="input-group">
+                <span class="input-group-text">£</span>
+                <input class="form-control" id="budgetAllocation" type="number" min="0" step="0.01">
+              </div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-bold" for="budgetSpent">Spent</label>
+              <input class="form-control readonly-field" id="budgetSpent" type="text" readonly>
+              <div class="form-text">Calculated from orders.</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-bold" for="budgetRemaining">Remaining</label>
+              <input class="form-control readonly-field" id="budgetRemaining" type="text" readonly>
+              <div class="form-text">Allocation less spent.</div>
+            </div>
+          </div>
+          <div id="budgetImpact" class="guidance mt-3"></div>
+          <div id="budgetValidation" class="validation-box success mt-3" aria-live="polite"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-danger me-auto" id="budgetActiveButton" style="display:none" onclick="toggleBudgetActive()">Deactivate department</button>
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-brand" id="saveBudgetButton" onclick="saveBudgetDraft()">Save department</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="userModal" tabindex="-1" aria-labelledby="userModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div>
+            <div class="eyebrow mb-1">Admin configuration</div>
+            <h2 class="modal-title h5 fw-bold" id="userModalTitle">Add user</h2>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="userOriginalEmail">
+          <div class="guidance mb-3">
+            <i class="bi bi-info-circle me-2"></i>Every user requires a school email, role, at least one department, and a default site.
+          </div>
+          <div class="row g-3">
+            <div class="col-md-7">
+              <label class="form-label fw-bold" for="userEmail">School email address <span class="text-danger" aria-hidden="true">*</span></label>
+              <input class="form-control" id="userEmail" type="email" autocomplete="off" required aria-required="true">
+              <div class="form-text" id="userEmailHelp">Existing email addresses cannot be renamed.</div>
+            </div>
+            <div class="col-md-5">
+              <label class="form-label fw-bold" for="userRole">Role <span class="text-danger" aria-hidden="true">*</span></label>
+              <select class="form-select" id="userRole" required aria-required="true"></select>
+            </div>
+            <div class="col-12">
+              <div class="access-picker mb-3">
+                <div class="form-label fw-bold" id="departmentsLabel">Department assignments <span class="text-danger" aria-hidden="true">*</span></div>
+                <label for="departmentChoiceSearch" class="visually-hidden">Search department assignments</label>
+                <input id="departmentChoiceSearch" class="form-control form-control-sm mb-2" type="search" placeholder="Search department assignments" autocomplete="off" data-draft-ignore>
+                <div class="small text-muted mb-1" id="departmentChoiceCount" role="status"></div>
+                <div class="access-options" id="departmentChoices" role="group" aria-labelledby="departmentsLabel"></div>
+              </div>
+              <div class="access-picker">
+                <div class="form-label fw-bold" id="processingDepartmentsLabel">Budgets this user may process</div>
+                <p class="form-text mb-2" id="processingDepartmentsHelp">Allows processing colleagues’ requests, logging direct spend and reviewing purchases in these budgets. Sends email notifications for new requests submitted by other people. Own purchases require another authorised reviewer.</p>
+                <label for="processingChoiceSearch" class="visually-hidden">Search processing budgets</label>
+                <input id="processingChoiceSearch" class="form-control form-control-sm mb-2" type="search" placeholder="Search processing budgets" autocomplete="off" data-draft-ignore>
+                <div class="small text-muted mb-1" id="processingChoiceCount" role="status"></div>
+                <div class="access-options" id="userProcessingDepartments" role="group" aria-labelledby="processingDepartmentsLabel" aria-describedby="processingDepartmentsHelp"></div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-bold" for="userDefaultSite">Default site <span class="text-danger" aria-hidden="true">*</span></label>
+              <select class="form-select" id="userDefaultSite" required aria-required="true"></select>
+              <div class="form-text">Required for every account.</div>
+            </div>
+            <div class="col-12">
+              <div class="form-label fw-bold mb-2">Additional permissions</div>
+              <div class="form-check border rounded p-3 ps-5 mb-2">
+                <input class="form-check-input user-addon" type="checkbox" id="userCanProcessOrders">
+                <label class="form-check-label fw-semibold" for="userCanProcessOrders">Process normal orders across all departments</label>
+                <div class="form-text">Allows normal orders across all departments to be viewed, edited and recorded as ordered. Invoice access depends on separate departmental grants. It does not grant finance, transfer or configuration access.</div>
+              </div>
+              <div class="form-check border rounded p-3 ps-5">
+                <input class="form-check-input user-addon" type="checkbox" id="userCanLogInvoices">
+                <label class="form-check-label fw-semibold" for="userCanLogInvoices">Log invoices for assigned departments</label>
+                <div class="form-text">Allows invoice entry only for this user's active department assignments.</div>
+              </div>
+              <div class="form-text mt-2" id="userAddonHelp">Additional permissions are available only for Staff and Head accounts.</div>
+            </div>
+          </div>
+          <div class="guidance mt-3">
+            <h3 class="h6 fw-bold mb-2">Effective permissions after saving</h3>
+            <ul id="effectiveAccessSummary" class="small mb-0 ps-3"></ul>
+          </div>
+          <div id="userValidation" class="validation-box success mt-3" aria-live="polite"></div>
+          <div id="deactivationGuidance" class="guidance mt-3"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-danger me-auto" id="deactivateButton" style="display:none" onclick="toggleUserActive()">Deactivate user</button>
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-brand" id="saveUserButton" onclick="saveUserDraft()">Save user</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="configurationConfirmModal" tabindex="-1" aria-labelledby="configurationConfirmTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title h5 fw-bold" id="configurationConfirmTitle">Confirm change</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-0" id="configurationConfirmMessage"></p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-danger" id="configurationConfirmButton">Confirm</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index:2100">
+    <div class="toast border-0 shadow" id="configurationToast" role="status" aria-live="polite" aria-atomic="true">
+      <div class="d-flex">
+        <div class="toast-body fw-semibold" id="configurationToastMessage"></div>
+        <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const configState = {
+      data: null,
+      budgetModal: null,
+      userModal: null,
+      confirmModal: null,
+      toast: null,
+      confirmAction: null,
+      currentBudget: null,
+      currentUserRecord: null,
+      saving: false
+    };
+
+    function safeStorageGet(key) {
+      try { return window.localStorage ? localStorage.getItem(key) : null; }
+      catch (e) { return null; }
+    }
+
+    function safeStorageSet(key, value) {
+      try { if (window.localStorage) localStorage.setItem(key, value); }
+      catch (e) {}
+    }
+
+    function setTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      safeStorageSet('theme', theme);
+      const icon = document.getElementById('themeIcon');
+      if (icon) icon.className = theme === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-stars-fill';
+    }
+
+    function toggleTheme() {
+      setTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+    }
+
+    if (safeStorageGet('theme') === 'dark') setTheme('dark');
+
+    function escapeHtml(value) {
+      return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function formatMoney(value) {
+      return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(Number(value) || 0);
+    }
+
+    function normalize(value) {
+      return String(value || '').trim().toLowerCase();
+    }
+
+    function parseServerResponse(response) {
+      if (typeof response === 'string') return JSON.parse(response);
+      if (response && typeof response === 'object') return response;
+      throw new Error('Unexpected response');
+    }
+
+    function showConfigurationToast(message, isError) {
+      const toast = document.getElementById('configurationToast');
+      toast.classList.remove('toast-success', 'toast-danger');
+      toast.classList.add(isError ? 'toast-danger' : 'toast-success');
+      document.getElementById('configurationToastMessage').textContent = message;
+      configState.toast.show();
+    }
+
+    function setButtonBusy(button, busy, busyText) {
+      if (!button) return;
+      if (busy) {
+        button.dataset.originalHtml = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = `<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>${escapeHtml(busyText || 'Saving…')}`;
+      } else if (button.dataset.originalHtml) {
+        button.innerHTML = button.dataset.originalHtml;
+        delete button.dataset.originalHtml;
+        button.disabled = false;
+      }
+    }
+
+    function showConfigurationConfirm(title, message, confirmLabel, action, danger) {
+      document.getElementById('configurationConfirmTitle').textContent = title;
+      document.getElementById('configurationConfirmMessage').textContent = message;
+      const button = document.getElementById('configurationConfirmButton');
+      button.textContent = confirmLabel || 'Confirm';
+      button.className = `btn ${danger === false ? 'btn-brand' : 'btn-danger'}`;
+      configState.confirmAction = action;
+      configState.confirmModal.show();
+    }
+
+    const activeConfigurationSaves_ = new Set();
+    function configurationMutationRun_() {
+      let success=()=>{},failure=()=>{};
+      const runner=new Proxy({}, {get(target,name){
+        if(name==='withSuccessHandler')return callback=>{success=callback;return runner;};
+        if(name==='withFailureHandler')return callback=>{failure=callback;return runner;};
+        return (...args)=>{
+          if(activeConfigurationSaves_.has(name))return;
+          activeConfigurationSaves_.add(name);let finished=false;
+          const finish=()=>{if(finished)return false;finished=true;clearTimeout(timer);activeConfigurationSaves_.delete(name);return true;};
+          const uncertain=()=>{if(!finish())return;
+            failure(new Error('Save status unknown. Reload configuration and check the saved settings and audit history before trying again.'));
+          };
+          const timer=setTimeout(uncertain,45000);
+          portalRun.withSuccessHandler(result=>{if(finish())success(result);}).withFailureHandler(uncertain)[name](...args);
+        };
+      }});return runner;
+    }
+
+    function finishConfigurationMutation(response, button, modal) {
+      configState.saving = false;
+      setButtonBusy(button, false);
+      try {
+        const result = parseServerResponse(response);
+        if (!result.success) {
+          showConfigurationToast(result.error || 'The change could not be saved.', true);
+          return false;
+        }
+        if (modal) {
+          const modalId = modal === configState.budgetModal ? 'budgetModal' : 'userModal';
+          configurationDraftSnapshots_[modalId] = configurationDraftValue_(modalId);
+          modal.hide();
+        }
+        showConfigurationToast(result.message || 'Configuration saved.', false);
+        loadConfiguration({ silent: true });
+        return true;
+      } catch (e) {
+        showConfigurationToast('The server returned an unexpected response. Please reload and check before trying again.', true);
+        return false;
+      }
+    }
+
+    function failConfigurationMutation(error, button) {
+      configState.saving = false;
+      setButtonBusy(button, false);
+      const message = error && error.message ? error.message : 'The change could not be saved. Please try again.';
+      showConfigurationToast(message, true);
+    }
+
+    function closeConfigurationWorkspace() {
+      try {
+        if (window.opener && !window.opener.closed) window.opener.focus();
+      } catch (e) {}
+      window.close();
+      window.setTimeout(() => {
+        const button = document.getElementById('backLink') || document.getElementById('errorBackLink');
+        if (button) {
+          button.title = 'Your browser could not close this tab automatically. Close the tab to return to the portal.';
+          button.innerHTML = '<i class="bi bi-x-lg me-1"></i>Close this tab to return';
+        }
+      }, 150);
+    }
+
+    function getSectionControls(sectionId) {
+      const section = document.getElementById(sectionId);
+      const toggle = section ? section.querySelector('[data-section-toggle]') : null;
+      const body = toggle ? document.getElementById(toggle.getAttribute('aria-controls')) : null;
+      return { section, toggle, body };
+    }
+
+    function syncSectionToggle(sectionId, expanded) {
+      const controls = getSectionControls(sectionId);
+      if (controls.toggle) controls.toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    }
+
+    function toggleSectionFromShortcut(sectionId) {
+      const controls = getSectionControls(sectionId);
+      if (!controls.section || !controls.body) return;
+      const collapse = bootstrap.Collapse.getOrCreateInstance(controls.body, { toggle: false });
+      if (controls.body.classList.contains('show')) {
+        collapse.hide();
+        return;
+      }
+      const scrollToSection = () => {
+        window.requestAnimationFrame(() => {
+          controls.section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          if (controls.toggle) controls.toggle.focus({ preventScroll: true });
+        });
+      };
+      controls.body.addEventListener('shown.bs.collapse', scrollToSection, { once: true });
+      collapse.show();
+    }
+
+    function initializeSectionControls() {
+      document.querySelectorAll('[data-section-toggle]').forEach(toggle => {
+        const sectionId = toggle.dataset.sectionToggle;
+        const controls = getSectionControls(sectionId);
+        if (!controls.body) return;
+        controls.body.addEventListener('shown.bs.collapse', () => syncSectionToggle(sectionId, true));
+        controls.body.addEventListener('hidden.bs.collapse', () => syncSectionToggle(sectionId, false));
+        toggle.addEventListener('click', () => {
+          bootstrap.Collapse.getOrCreateInstance(controls.body, { toggle: false }).toggle();
+        });
+      });
+      document.querySelectorAll('[data-section-target]').forEach(shortcut => {
+        shortcut.addEventListener('click', () => toggleSectionFromShortcut(shortcut.dataset.sectionTarget));
+      });
+    }
+
+    function showError(message, isAccessDenied) {
+      document.getElementById('loadingScreen').style.display = 'none';
+      document.getElementById('workspace').style.display = 'none';
+      document.getElementById('errorTitle').textContent = isAccessDenied ? 'Admin access required' : 'Configuration unavailable';
+      document.getElementById('errorMessage').textContent = message || 'This page could not be loaded.';
+      document.getElementById('errorScreen').style.display = 'block';
+    }
+
+    function renderSummary() {
+      const data = configState.data;
+      document.getElementById('departmentCount').textContent = data.summary.departmentCount;
+      document.getElementById('userCount').textContent = data.summary.userCount;
+      document.getElementById('adminCount').textContent = data.summary.adminCount;
+      document.getElementById('signedInEmail').textContent = data.user.email;
+    }
+
+    function renderBudgets() {
+      const query = normalize(document.getElementById('budgetSearch').value);
+      const status = document.getElementById('budgetStatusFilter').value;
+      const rows = configState.data.budgets.filter(budget =>
+        (!query || normalize(budget.department).includes(query) || normalize(budget.glCode).includes(query)) &&
+        (!status || (budget.status || (budget.isActive === false ? 'Inactive' : 'Active')) === status)
+      );
+      document.getElementById('budgetResultCount').textContent = `Showing ${rows.length} of ${configState.data.budgets.length} departments`;
+      document.getElementById('budgetRows').innerHTML = rows.map(budget => {
+        const dependencies = budget.dependencies || { userCount: 0, orderCount: 0, pendingOrderCount: 0 };
+        const encodedName = encodeURIComponent(budget.department);
+        const isActive = budget.isActive !== false;
+        const systemLabel = budget.isSystemDepartment
+          ? '<span class="badge role-badge ms-2"><i class="bi bi-lock-fill me-1"></i>System</span>'
+          : '';
+        return `
+          <tr class="${budget.isSystemDepartment ? 'system-row' : ''} ${isActive ? '' : 'inactive-row'}">
+            <td data-label="Department"><div class="mobile-cell-value"><strong>${escapeHtml(budget.department)}</strong>${systemLabel}</div></td>
+            <td data-label="Allocation">${formatMoney(budget.totalAllocation)}</td>
+            <td data-label="Spent">${budget.hasCalculationError ? '<span class="text-danger fw-bold">Unavailable</span>' : formatMoney(budget.spent)}</td>
+            <td data-label="Remaining" class="${!budget.hasCalculationError && Number(budget.remaining) < 0 ? 'money-negative' : ''}">${budget.hasCalculationError ? '<span class="text-danger fw-bold">Unavailable</span>' : formatMoney(budget.remaining)}</td>
+            <td data-label="GL code">${escapeHtml(budget.glCode || 'Not set')}</td>
+            <td data-label="Used by"><div class="mobile-cell-value">
+              <span class="badge dependency-badge me-1">${dependencies.userCount} user${dependencies.userCount === 1 ? '' : 's'}</span>
+              <span class="badge dependency-badge">${dependencies.orderCount} order${dependencies.orderCount === 1 ? '' : 's'}</span>
+              ${dependencies.pendingOrderCount ? `<span class="badge dependency-badge mt-1">${dependencies.pendingOrderCount} pending</span>` : ''}
+            </div></td>
+            <td data-label="Status"><span class="badge ${budget.hasCalculationError ? 'text-bg-danger' : (isActive ? 'status-active' : 'status-inactive')}">${budget.hasCalculationError ? 'Calculation error' : (isActive ? 'Active' : 'Inactive')}</span></td>
+            <td data-label="Action" class="text-end">
+              <button class="btn btn-sm btn-outline-secondary budget-edit" type="button" data-budget="${encodedName}">
+                ${budget.isSystemDepartment ? '<i class="bi bi-eye me-1"></i>View' : '<i class="bi bi-pencil me-1"></i>Edit'}
+              </button>
+            </td>
+          </tr>`;
+      }).join('');
+      document.getElementById('budgetEmpty').style.display = rows.length ? 'none' : 'block';
+    }
+
+    function renderUsers() {
+      const query = normalize(document.getElementById('userSearch').value);
+      const role = document.getElementById('roleFilter').value;
+      const status = document.getElementById('userStatusFilter').value;
+      const rows = configState.data.users.filter(user => {
+        const haystack = [user.email, user.role, user.defaultSite].concat(user.departments || [], user.processingDepartments || []).join(' ').toLowerCase();
+        return (!query || haystack.includes(query)) &&
+          (!role || user.role === role) &&
+          (!status || (user.status || (user.isActive === false ? 'Inactive' : 'Active')) === status);
+      });
+      document.getElementById('userResultCount').textContent = `Showing ${rows.length} of ${configState.data.users.length} users`;
+      document.getElementById('userRows').innerHTML = rows.map(user => {
+        const encodedEmail = encodeURIComponent(user.email);
+        const isActive = user.isActive !== false;
+        const departmentBadges = (user.departments || []).map(department =>
+          `<span class="badge dependency-badge me-1 mb-1">${escapeHtml(department)}</span>`
+        ).join('');
+        return `
+          <tr class="${isActive ? '' : 'inactive-row'}">
+            <td class="user-identity">
+              <strong>${escapeHtml(user.email)}</strong>
+              ${user.isCurrentUser ? '<div class="small text-muted">Current account</div>' : ''}
+            </td>
+            <td class="user-role">
+              <span class="badge role-badge">${escapeHtml(user.role)}</span>
+              ${(user.processingDepartments || []).length ? '<span class="small ms-1">Processing budgets: ' + escapeHtml(user.processingDepartments.join(', ')) + '</span>' : ''}
+              ${user.canProcessOrders ? '<span class="small text-nowrap ms-1"><i class="bi bi-cart-check me-1"></i>Processes orders</span>' : ''}
+              ${user.canLogInvoices ? '<span class="small text-nowrap ms-1"><i class="bi bi-receipt me-1"></i>Logs invoices</span>' : ''}
+            </td>
+            <td class="user-departments">${departmentBadges || '<span class="text-muted">None</span>'}</td>
+            <td>${escapeHtml(user.defaultSite || 'Not set')}</td>
+            <td><span class="badge ${isActive ? 'status-active' : 'status-inactive'}">${isActive ? 'Active' : 'Inactive'}</span></td>
+            <td class="user-action text-end">
+              <button class="btn btn-sm btn-outline-secondary user-edit" type="button" data-user="${encodedEmail}">
+                <i class="bi bi-pencil me-1"></i>Edit
+              </button>
+            </td>
+          </tr>`;
+      }).join('');
+      document.getElementById('userEmpty').style.display = rows.length ? 'none' : 'block';
+    }
+
+    function renderRoleGuide() {
+      document.getElementById('roleGuide').innerHTML = configState.data.roles.map(role => `
+        <div class="col-md-6">
+          <div class="role-guide h-100">
+            <div class="fw-bold">${escapeHtml(role.label)}</div>
+            <div class="small text-muted">${escapeHtml(role.description)}</div>
+          </div>
+        </div>`).join('');
+    }
+
+    function formatAuditTimestamp(value) {
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return String(value || 'Unknown');
+      return new Intl.DateTimeFormat('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }).format(date);
+    }
+
+    function renderAudit() {
+      const audit = configState.data.audit || { available: false, records: [], message: '' };
+      const records = Array.isArray(audit.records) ? audit.records : [];
+      document.getElementById('auditCount').textContent =
+        `${records.length} change${records.length === 1 ? '' : 's'}`;
+      document.getElementById('auditMessage').textContent = audit.message || '';
+      document.getElementById('auditTableWrap').style.display = records.length ? 'block' : 'none';
+      document.getElementById('auditEmpty').style.display = records.length ? 'none' : 'block';
+      document.getElementById('auditRows').innerHTML = records.map(record => `
+        <tr>
+          <td data-label="When" class="audit-time">${escapeHtml(formatAuditTimestamp(record.timestamp))}</td>
+          <td data-label="User" class="audit-user">${escapeHtml(record.actorEmail || 'Unknown')}</td>
+          <td data-label="Change"><span class="badge audit-action">${escapeHtml(record.action || 'Changed')}</span></td>
+          <td data-label="Item and details" class="audit-details">
+            <strong>${escapeHtml(record.target || 'Not specified')}</strong>
+            <div class="small text-muted mt-1">${escapeHtml(record.details || 'No further details')}</div>
+          </td>
+        </tr>`).join('');
+    }
+
+    function populateFiltersAndForms() {
+      const selectedRole = document.getElementById('roleFilter').value;
+      const roleOptions = configState.data.roles.map(role =>
+        `<option value="${escapeHtml(role.value)}">${escapeHtml(role.label)}</option>`
+      ).join('');
+      document.getElementById('roleFilter').innerHTML = '<option value="">All roles</option>' + roleOptions;
+      if (configState.data.roles.some(role => role.value === selectedRole)) {
+        document.getElementById('roleFilter').value = selectedRole;
+      }
+      document.getElementById('userRole').innerHTML = '<option value="">Choose a role</option>' + roleOptions;
+      document.getElementById('userDefaultSite').innerHTML = '<option value="">Choose a site</option>' +
+        configState.data.sites.map(site => `<option value="${escapeHtml(site)}">${escapeHtml(site)}</option>`).join('');
+      populateAccessChoices_();
+      document.getElementById('financeEmail').value = configState.data.systemSettings.financeEmail || '';
+      document.getElementById('senderAlias').value = configState.data.systemSettings.senderAlias || '';
+    }
+
+    function populateAccessChoices_() {
+      const activeBudgets = configState.data.budgets.filter(budget => budget.isActive !== false);
+      const option = (budget, index, kind) => {
+        const id = `${kind}Choice${index}`;
+        const department = escapeHtml(budget.department);
+        return `<div class="access-option" data-search="${escapeHtml([budget.department, budget.glCode].filter(Boolean).join(' '))}">
+          <input class="form-check-input user-${kind}" type="checkbox" value="${department}" data-system="${!!budget.isSystemDepartment}" id="${id}">
+          <label for="${id}">${department}${budget.isSystemDepartment ? ' <span class="badge role-badge">System</span>' : ''}</label>
+        </div>`;
+      };
+      document.getElementById('departmentChoices').innerHTML = activeBudgets.map((budget, index) => option(budget, index, 'department')).join('');
+      document.getElementById('userProcessingDepartments').innerHTML = activeBudgets.filter(budget => !budget.isSystemDepartment)
+        .map((budget, index) => option(budget, index, 'processing')).join('');
+    }
+
+    function updateAccessPicker_(groupId, searchId, countId) {
+      const query = normalize(document.getElementById(searchId).value);
+      const choices = Array.from(document.getElementById(groupId).querySelectorAll('.access-option'));
+      let visible = 0, selected = 0;
+      choices.forEach(choice => {
+        choice.hidden = !normalize(choice.dataset.search).includes(query);
+        if (!choice.hidden) visible++;
+        if (choice.querySelector('input').checked) selected++;
+      });
+      document.getElementById(countId).textContent = `${selected} selected · ${visible} of ${choices.length} shown`;
+    }
+
+    function refreshAccessPickers_() {
+      updateAccessPicker_('departmentChoices', 'departmentChoiceSearch', 'departmentChoiceCount');
+      updateAccessPicker_('userProcessingDepartments', 'processingChoiceSearch', 'processingChoiceCount');
+    }
+
+    function openBudgetDraft(departmentName) {
+      const budget = departmentName
+        ? configState.data.budgets.find(item => item.department === departmentName)
+        : null;
+      configState.currentBudget = budget || null;
+      configState.budgetRevision = configState.data.configurationRevision;
+      const systemLocked = !!(budget && budget.isSystemDepartment);
+      document.getElementById('budgetModalTitle').textContent = budget ? (systemLocked ? 'View system department' : 'Edit department') : 'Add department';
+      document.getElementById('budgetOriginalName').value = budget ? budget.department : '';
+      document.getElementById('budgetDepartment').value = budget ? budget.department : '';
+      document.getElementById('budgetGlCode').value = budget ? budget.glCode : '';
+      document.getElementById('budgetAllocation').value = budget ? budget.totalAllocation : '';
+      document.getElementById('budgetSpent').value = budget && budget.hasCalculationError ? 'Unavailable' : (budget ? formatMoney(budget.spent) : formatMoney(0));
+      document.getElementById('budgetRemaining').value = budget && budget.hasCalculationError ? 'Unavailable' : (budget ? formatMoney(budget.remaining) : formatMoney(0));
+      ['budgetDepartment', 'budgetGlCode', 'budgetAllocation'].forEach(id => {
+        document.getElementById(id).disabled = systemLocked;
+      });
+      const dependencies = budget ? budget.dependencies : { userCount: 0, orderCount: 0, pendingOrderCount: 0 };
+      document.getElementById('budgetImpact').innerHTML = budget && budget.hasCalculationError
+        ? `<i class="bi bi-exclamation-triangle-fill me-2"></i><strong>Budget calculation unavailable.</strong> ${escapeHtml(budget.calculationError || 'Check the Budgets sheet before making changes.')}`
+        : systemLocked
+        ? '<i class="bi bi-lock-fill me-2"></i><strong>Protected system department.</strong> Wipro cannot be edited through ordinary configuration.'
+        : `<i class="bi bi-diagram-2 me-2"></i><strong>Impact check:</strong> ${dependencies.userCount} active user${dependencies.userCount === 1 ? '' : 's'}, ${dependencies.orderCount} historical order${dependencies.orderCount === 1 ? '' : 's'}, and ${dependencies.pendingOrderCount || 0} pending order${dependencies.pendingOrderCount === 1 ? '' : 's'} are linked to this department.`;
+
+      const activeButton = document.getElementById('budgetActiveButton');
+      activeButton.style.display = budget && !systemLocked ? 'inline-block' : 'none';
+      if (budget && !systemLocked) {
+        const isActive = budget.isActive !== false;
+        activeButton.textContent = isActive ? 'Deactivate department' : 'Reactivate department';
+        activeButton.className = `btn me-auto ${isActive ? 'btn-outline-danger' : 'btn-outline-success'}`;
+        activeButton.disabled = !!budget.hasCalculationError || (isActive && (dependencies.userCount > 0 || (dependencies.pendingOrderCount || 0) > 0));
+        activeButton.title = activeButton.disabled
+          ? 'Remove active users and complete pending orders before deactivating this department.'
+          : '';
+      }
+      document.getElementById('saveBudgetButton').style.display = systemLocked ? 'none' : 'inline-block';
+      validateBudgetDraft();
+      configState.budgetModal.show();
+    }
+
+    function validateBudgetDraft() {
+      const originalName = normalize(document.getElementById('budgetOriginalName').value);
+      const name = document.getElementById('budgetDepartment').value.trim();
+      const allocationRaw = document.getElementById('budgetAllocation').value;
+      const allocation = Number(allocationRaw);
+      const original = configState.data.budgets.find(item => normalize(item.department) === originalName);
+      const spent = original ? Number(original.spent) || 0 : 0;
+      const messages = [];
+      let type = 'success';
+      if (original && original.hasCalculationError) {
+        messages.push('This budget calculation is unavailable. Correct the workbook calculation before editing this department.');
+        type = 'danger';
+      }
+      const validName = /^[A-Za-z0-9][A-Za-z0-9 &()'./-]{0,79}$/.test(name);
+      if (!name || !validName) {
+        messages.push('Enter a valid department name.');
+        type = 'danger';
+      } else {
+        const duplicate = configState.data.budgets.some(item =>
+          normalize(item.department) === normalize(name) && normalize(item.department) !== originalName
+        );
+        if (duplicate) {
+          messages.push('That department name already exists.');
+          type = 'danger';
+        }
+      }
+      if (allocationRaw === '' || !Number.isFinite(allocation) || allocation < 0) {
+        messages.push('Allocation must be a number of zero or more.');
+        type = 'danger';
+      } else if (allocation < spent && type !== 'danger') {
+        messages.push(`Warning: this allocation is ${formatMoney(spent - allocation)} below current spend.`);
+        type = 'warning';
+      }
+      const glCode = document.getElementById('budgetGlCode').value.trim();
+      if (glCode && !/^[A-Za-z0-9][A-Za-z0-9 ._/-]{0,39}$/.test(glCode)) {
+        messages.push('Enter a valid GL code.');
+        type = 'danger';
+      } else if (!glCode && type === 'success') {
+        messages.push('GL code is blank. It can remain blank, but adding one makes finance coding clearer.');
+        type = 'warning';
+      }
+      if (!messages.length) messages.push('Ready to save.');
+      const box = document.getElementById('budgetValidation');
+      box.className = `validation-box ${type} mt-3`;
+      box.textContent = messages.join(' ');
+      const remaining = Number.isFinite(allocation) ? allocation - spent : 0;
+      document.getElementById('budgetRemaining').value = original && original.hasCalculationError ? 'Unavailable' : formatMoney(remaining);
+      const valid = type !== 'danger';
+      const saveButton = document.getElementById('saveBudgetButton');
+      saveButton.disabled = !valid || configState.saving || !!(original && original.isSystemDepartment);
+      return { valid, allocation, spent, original, name };
+    }
+
+    function executeBudgetSave() {
+      const button = document.getElementById('saveBudgetButton');
+      const payload = {
+        expectedConfigurationRevision: configState.budgetRevision,
+        originalName: document.getElementById('budgetOriginalName').value,
+        department: document.getElementById('budgetDepartment').value.trim(),
+        glCode: document.getElementById('budgetGlCode').value.trim(),
+        totalAllocation: document.getElementById('budgetAllocation').value
+      };
+      configState.saving = true;
+      setButtonBusy(button, true, 'Saving…');
+      configurationMutationRun_()
+        .withSuccessHandler(response => finishConfigurationMutation(response, button, configState.budgetModal))
+        .withFailureHandler(error => failConfigurationMutation(error, button))
+        .saveAdminBudgetConfiguration(payload);
+    }
+
+    function saveBudgetDraft() {
+      if (configState.saving) return;
+      const validation = validateBudgetDraft();
+      if (!validation.valid) return;
+      const confirmations = [];
+      if (validation.original && normalize(validation.original.department) !== normalize(validation.name)) {
+        const dependencies = validation.original.dependencies || {};
+        confirmations.push(
+          `Renaming will update ${dependencies.userCount || 0} active user assignment(s) and ${dependencies.orderCount || 0} order record(s).`
+        );
+      }
+      if (validation.allocation < validation.spent) {
+        confirmations.push(`The new allocation is ${formatMoney(validation.spent - validation.allocation)} below existing spend.`);
+      }
+      if (confirmations.length) {
+        showConfigurationConfirm(
+          'Confirm department change',
+          confirmations.join(' '),
+          'Save department',
+          executeBudgetSave,
+          false
+        );
+        return;
+      }
+      executeBudgetSave();
+    }
+
+    function toggleBudgetActive() {
+      const budget = configState.currentBudget;
+      if (!budget || budget.isSystemDepartment || configState.saving) return;
+      const nextActive = budget.isActive === false;
+      const dependencies = budget.dependencies || {};
+      const message = nextActive
+        ? `Reactivate ${budget.department} and return it to department and ordering choices?`
+        : `Deactivate ${budget.department}? Its ${dependencies.orderCount || 0} historical order record(s) will be retained.`;
+      showConfigurationConfirm(
+        nextActive ? 'Reactivate department' : 'Deactivate department',
+        message,
+        nextActive ? 'Reactivate' : 'Deactivate',
+        () => {
+          const button = document.getElementById('budgetActiveButton');
+          configState.saving = true;
+          setButtonBusy(button, true, nextActive ? 'Reactivating…' : 'Deactivating…');
+          configurationMutationRun_()
+            .withSuccessHandler(response => finishConfigurationMutation(response, button, configState.budgetModal))
+            .withFailureHandler(error => failConfigurationMutation(error, button))
+            .setAdminBudgetActive(budget.department, nextActive, configState.budgetRevision);
+        },
+        !nextActive
+      );
+    }
+
+    function openUserDraft(email) {
+      const user = email ? configState.data.users.find(item => item.email === email) : null;
+      configState.currentUserRecord = user || null;
+      configState.userRevision = configState.data.configurationRevision;
+      document.getElementById('userModalTitle').textContent = user ? 'Edit user access' : 'Add user';
+      document.getElementById('userOriginalEmail').value = user ? user.email : '';
+      document.getElementById('userEmail').value = user ? user.email : '';
+      document.getElementById('userEmail').readOnly = !!user;
+      document.getElementById('userEmail').classList.toggle('readonly-field', !!user);
+      document.getElementById('userEmailHelp').textContent = user
+        ? 'Existing email addresses cannot be renamed.'
+        : `Use an @${configState.data.schoolDomain} address.`;
+      document.getElementById('userRole').value = user ? user.role : '';
+      document.getElementById('userDefaultSite').value = user ? user.defaultSite : '';
+      document.getElementById('userCanProcessOrders').checked = !!(user && user.canProcessOrders);
+      document.getElementById('userCanLogInvoices').checked = !!(user && user.canLogInvoices);
+      document.querySelectorAll('.user-department').forEach(checkbox => {
+        checkbox.checked = !!(user && (user.departments || []).includes(checkbox.value));
+      });
+      document.querySelectorAll('.user-processing').forEach(checkbox => {
+        checkbox.checked = !!(user && (user.processingDepartments || []).includes(checkbox.value));
+      });
+      document.getElementById('departmentChoiceSearch').value = '';
+      document.getElementById('processingChoiceSearch').value = '';
+      document.querySelector('#userModal .modal-body').scrollTop = 0;
+      syncUserDepartmentChoices();
+      const deactivateButton = document.getElementById('deactivateButton');
+      deactivateButton.style.display = user ? 'inline-block' : 'none';
+      if (user) {
+        const isActive = user.isActive !== false;
+        deactivateButton.textContent = isActive ? 'Deactivate user' : 'Reactivate user';
+        deactivateButton.className = `btn me-auto ${isActive ? 'btn-outline-danger' : 'btn-outline-success'}`;
+        deactivateButton.disabled = isActive ? !user.canDeactivate : !user.canReactivate;
+      }
+      const deactivationText = !user
+        ? 'Deactivation becomes available after the user is created.'
+        : (user.isActive === false
+          ? 'This account is inactive. Reactivation restores portal access after the saved fields pass validation.'
+          : (user.deactivationReason || 'Deactivation removes portal access without deleting the row or its audit history.'));
+      document.getElementById('deactivationGuidance').innerHTML =
+        `<i class="bi bi-person-dash me-2"></i><strong>Deactivation guardrail:</strong> ${escapeHtml(deactivationText)}`;
+      validateUserDraft();
+      configState.userModal.show();
+    }
+
+    function syncUserDepartmentChoices() {
+      const selectedRole = document.getElementById('userRole').value;
+      const isWiproRole = selectedRole === 'Wipro';
+      ['departmentChoiceSearch', 'processingChoiceSearch'].forEach(id => {
+        const search = document.getElementById(id);
+        search.disabled = isWiproRole;
+        if (isWiproRole) search.value = '';
+      });
+      document.querySelectorAll('.user-processing').forEach(checkbox => {
+        checkbox.disabled = isWiproRole;
+        if (isWiproRole) checkbox.checked = false;
+      });
+      document.getElementById('processingDepartmentsHelp').textContent = isWiproRole
+        ? 'Wipro uses Finance role access across departments. There are no separate processing grants.'
+        : selectedRole === 'Admin'
+          ? 'Admins already have processing access across all departments. Select budgets here to receive emails when other people submit new requests to them.'
+          : 'Allows processing colleagues’ requests, logging direct spend and reviewing purchases in these budgets. Sends email notifications for new requests submitted by other people. Own purchases require another authorised reviewer.';
+      const canUseAddOns = selectedRole === 'Staff' || selectedRole === 'Head';
+      document.querySelectorAll('.user-department').forEach(checkbox => {
+        const isSystem = checkbox.dataset.system === 'true';
+        if (isSystem) {
+          checkbox.checked = isWiproRole;
+          checkbox.disabled = true;
+        } else {
+          if (isWiproRole) checkbox.checked = false;
+          checkbox.disabled = isWiproRole;
+        }
+      });
+      document.querySelectorAll('.user-addon').forEach(checkbox => {
+        if (!canUseAddOns) checkbox.checked = false;
+        checkbox.disabled = !canUseAddOns;
+      });
+      document.getElementById('userAddonHelp').textContent = canUseAddOns
+        ? 'Choose school-wide order processing or invoice entry for assigned departments. Processing budgets above are separate.'
+        : 'These additional permissions are available for Staff and Head accounts.';
+    }
+
+    function effectiveUserAccess_(draft, inactive) {
+      const {role, site, departments, processingDepartments, canProcessOrders, canLogInvoices} = draft;
+      if (!role) return ['Choose a role to preview access.'];
+      const access = inactive ? ['The account is inactive. These permissions apply when it is reactivated.'] : [];
+      if (role !== 'Wipro' && processingDepartments.length) access.push(`Receive emails for new requests submitted by other people in ${processingDepartments.join(', ')}.`);
+      if (role === 'Admin') {
+        return access.concat('View and manage purchases and invoices across all departments. Review purchases and manage portal configuration and budget transfers.');
+      }
+      if (role === 'Wipro') {
+        return access.concat('View and process purchases and invoices across all departments. Access the Finance overview.');
+      }
+      if (role === 'Head') access.push(site ? `View the ${site} site overview.` : 'Choose a default site for the site overview.');
+      access.push(departments.length
+        ? `Request purchases and view department records for ${departments.join(', ')}.`
+        : 'Choose the departments where this user may request purchases.');
+      if (canProcessOrders) access.push('View, edit and record normal orders across the school. Review colleagues’ normal purchases. Invoice access requires a processing budget.');
+      if (canLogInvoices && !canProcessOrders) access.push('Log invoices for the assigned departments.');
+      if (processingDepartments.length) access.push(`Process requests, log direct spend and review colleagues’ purchases in ${processingDepartments.join(', ')}.`);
+      if (canProcessOrders || processingDepartments.length) access.push('Own purchases require another authorised reviewer.');
+      return access;
+    }
+
+    function validateUserDraft() {
+      const processing = document.getElementById('userCanProcessOrders');
+      const invoices = document.getElementById('userCanLogInvoices');
+      const allowAddOns = ['Staff', 'Head'].includes(document.getElementById('userRole').value);
+      processing.disabled = !allowAddOns || (invoices.checked && !processing.checked);
+      invoices.disabled = !allowAddOns || (processing.checked && !invoices.checked);
+      const email = normalize(document.getElementById('userEmail').value);
+      const originalEmail = normalize(document.getElementById('userOriginalEmail').value);
+      const role = document.getElementById('userRole').value;
+      const site = document.getElementById('userDefaultSite').value;
+      const departments = Array.from(document.querySelectorAll('.user-department:checked')).map(item => item.value);
+      const processingDepartments = Array.from(document.querySelectorAll('.user-processing:checked')).map(item => item.value);
+      const draft = { email, originalEmail, role, site, departments, processingDepartments, canProcessOrders: processing.checked, canLogInvoices: invoices.checked };
+      const accessItems = effectiveUserAccess_(draft, configState.currentUserRecord?.isActive === false).map(text => {
+        const item = document.createElement('li');
+        item.textContent = text;
+        return item;
+      });
+      document.getElementById('effectiveAccessSummary').replaceChildren(...accessItems);
+      refreshAccessPickers_();
+      const messages = [];
+      if (allowAddOns && processing.checked && invoices.checked) messages.push('Choose either order processing or invoice logging, not both. Invoice access is blocked while order processing is enabled.');
+      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailPattern.test(email) || !email.endsWith('@' + normalize(configState.data.schoolDomain))) {
+        messages.push(`Use a valid @${configState.data.schoolDomain} email address.`);
+      }
+      const duplicate = configState.data.users.some(item =>
+        normalize(item.email) === email && normalize(item.email) !== originalEmail
+      );
+      if (duplicate) messages.push('That user already exists.');
+      if (!configState.data.roles.some(item => item.value === role)) messages.push('Choose a valid role.');
+      if (!departments.length) messages.push('Choose at least one department.');
+      if (!configState.data.sites.includes(site)) messages.push('Choose a valid default site.');
+      const box = document.getElementById('userValidation');
+      box.className = `validation-box ${messages.length ? 'danger' : 'success'} mt-3`;
+      box.textContent = messages.length ? messages.join(' ') : 'Ready to save.';
+      const valid = !messages.length;
+      document.getElementById('saveUserButton').disabled = !valid || configState.saving;
+      return { valid, ...draft };
+    }
+
+    function executeUserSave() {
+      const validation = validateUserDraft();
+      if (!validation.valid) return;
+      const button = document.getElementById('saveUserButton');
+      const payload = {
+        expectedConfigurationRevision: configState.userRevision,
+        originalEmail: document.getElementById('userOriginalEmail').value,
+        email: document.getElementById('userEmail').value.trim(),
+        role: validation.role,
+        defaultSite: validation.site,
+        departments: validation.departments,
+        processingDepartments: validation.processingDepartments,
+        canProcessOrders: validation.canProcessOrders,
+        canLogInvoices: validation.canLogInvoices
+      };
+      configState.saving = true;
+      setButtonBusy(button, true, 'Saving…');
+      configurationMutationRun_()
+        .withSuccessHandler(response => finishConfigurationMutation(response, button, configState.userModal))
+        .withFailureHandler(error => failConfigurationMutation(error, button))
+        .saveAdminUserConfiguration(payload);
+    }
+
+    function saveUserDraft() {
+      if (configState.saving) return;
+      const validation = validateUserDraft();
+      if (!validation.valid) return;
+      const existing = configState.currentUserRecord;
+      const warnings = [];
+      if (existing) {
+        const submitted = new Set(validation.departments.map(normalize));
+        const removed = (existing.departments || []).filter(department => !submitted.has(normalize(department)));
+        if (removed.length) warnings.push(`Remove ${removed.join(', ')} from this user?`);
+        if (existing.role !== validation.role) warnings.push(`Change the role from ${existing.role} to ${validation.role}?`);
+        if (JSON.stringify(existing.processingDepartments || []) !== JSON.stringify(validation.processingDepartments)) warnings.push('Change the budgets this user may process and independently review?');
+        if (!!existing.canProcessOrders !== validation.canProcessOrders) {
+          warnings.push(`${validation.canProcessOrders ? 'Enable' : 'Disable'} school-wide normal order processing?`);
+        }
+        if (!!existing.canLogInvoices !== validation.canLogInvoices) {
+          warnings.push(`${validation.canLogInvoices ? 'Enable' : 'Disable'} invoice logging for assigned departments?`);
+        }
+      }
+      if (warnings.length) {
+        showConfigurationConfirm('Confirm user access change', warnings.join(' '), 'Save user', executeUserSave, false);
+        return;
+      }
+      executeUserSave();
+    }
+
+    function toggleUserActive() {
+      const user = configState.currentUserRecord;
+      if (!user || configState.saving) return;
+      const nextActive = user.isActive === false;
+      showConfigurationConfirm(
+        nextActive ? 'Reactivate user' : 'Deactivate user',
+        nextActive
+          ? `Restore portal access for ${user.email}?`
+          : `Remove portal access for ${user.email}? The user row and audit history will be retained.`,
+        nextActive ? 'Reactivate' : 'Deactivate',
+        () => {
+          const button = document.getElementById('deactivateButton');
+          configState.saving = true;
+          setButtonBusy(button, true, nextActive ? 'Reactivating…' : 'Deactivating…');
+          configurationMutationRun_()
+            .withSuccessHandler(response => finishConfigurationMutation(response, button, configState.userModal))
+            .withFailureHandler(error => failConfigurationMutation(error, button))
+            .setAdminUserActive(user.email, nextActive, configState.userRevision);
+        },
+        !nextActive
+      );
+    }
+
+    function validateSettingsDraft() {
+      const values = [
+        { label: 'Finance notification email', value: document.getElementById('financeEmail').value.trim() }
+      ];
+      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const invalid = values.filter(item => !emailPattern.test(item.value));
+      const box = document.getElementById('settingsValidation');
+      box.className = `validation-box ${invalid.length ? 'danger' : 'success'} mt-3`;
+      const current = normalize(configState.data && configState.data.systemSettings.financeEmail);
+      const next = normalize(document.getElementById('financeEmail').value);
+      const changed = current !== next;
+      box.textContent = invalid.length
+        ? invalid.map(item => item.label + ' must be a valid email address.').join(' ')
+        : (changed ? 'Ready to save.' : 'No changes to save.');
+      document.getElementById('saveSettingsButton').disabled = !!invalid.length || !changed || configState.saving;
+      return { valid: !invalid.length, changed };
+    }
+
+    function saveSystemSettings() {
+      if (configState.saving) return;
+      const validation = validateSettingsDraft();
+      if (!validation.valid || !validation.changed) return;
+      const button = document.getElementById('saveSettingsButton');
+      configState.saving = true;
+      setButtonBusy(button, true, 'Saving…');
+      configurationMutationRun_()
+        .withSuccessHandler(response => finishConfigurationMutation(response, button, null))
+        .withFailureHandler(error => failConfigurationMutation(error, button))
+        .saveAdminSystemSettings({ expectedConfigurationRevision: configState.data.configurationRevision, financeEmail: document.getElementById('financeEmail').value.trim() });
+    }
+
+    let weeklyReportSettings = null;
+    const configurationDraftSnapshots_ = {};
+    function configurationDraftValue_(id) {
+      return JSON.stringify(Array.from(document.getElementById(id).querySelectorAll('input:not([data-draft-ignore]),select,textarea'))
+        .map(field => [field.id || field.name, field.value, field.checked]));
+    }
+    function weeklyReportDirty_() {
+      return weeklyReportSettings && (document.getElementById('weeklyReportCc').value.split(/[\s,;]+/).filter(Boolean).join(',') !== weeklyReportSettings.cc.join(',') ||
+        document.getElementById('weeklyReportEnabled').checked !== weeklyReportSettings.enabled);
+    }
+    function configurationDirty_() {
+      return configState.saving || (configState.data && normalize(document.getElementById('financeEmail').value) !== normalize(configState.data.systemSettings.financeEmail)) ||
+        weeklyReportDirty_() || ['budgetModal','userModal'].some(id => document.getElementById(id).classList.contains('show') && configurationDraftSnapshots_[id] !== configurationDraftValue_(id));
+    }
+    ['budgetModal','userModal'].forEach(id => {
+      const element = document.getElementById(id);
+      element.addEventListener('show.bs.modal', () => {
+        element.querySelector('.draft-discard-warning')?.remove();
+        configurationDraftSnapshots_[id] = configurationDraftValue_(id);
+      });
+      element.addEventListener('hide.bs.modal', event => {
+        if (configState.saving) { event.preventDefault(); return; }
+        if (configurationDraftSnapshots_[id] === configurationDraftValue_(id)) return;
+        event.preventDefault();
+        let warning = element.querySelector('.draft-discard-warning');
+        if (!warning) {
+          warning = document.createElement('div');
+          warning.className = 'draft-discard-warning alert alert-warning m-3';
+          warning.setAttribute('role','alert');
+          warning.innerHTML = '<p>You have unsaved changes. Discard this draft?</p><button type="button" class="btn btn-outline-secondary me-2">Keep editing</button><button type="button" class="btn btn-danger">Discard changes</button>';
+          const buttons = warning.querySelectorAll('button');
+          buttons[0].onclick = () => { warning.remove(); element.querySelector('input:not([readonly]):not([disabled]),select:not([disabled])')?.focus(); };
+          buttons[1].onclick = () => { configurationDraftSnapshots_[id] = configurationDraftValue_(id); bootstrap.Modal.getOrCreateInstance(element).hide(); };
+          element.querySelector('.modal-content').appendChild(warning);
+        }
+        warning.querySelector('button').focus();
+      });
+    });
+    window.addEventListener('beforeunload', event => {
+      if (!configurationDirty_()) return;
+      event.preventDefault(); event.returnValue = '';
+    });
+    function weeklyReportBusy(busy) {
+      ['Save','Preview','Send'].forEach(suffix => {
+        const button = document.getElementById('weeklyReport'+suffix);
+        if (button) button.disabled = busy;
+      });
+    }
+    function loadWeeklyReportSettings() {
+      portalRun.withSuccessHandler(settings => {
+        const preserveDraft = weeklyReportDirty_();
+        weeklyReportSettings = settings;
+        if (!preserveDraft) {
+          document.getElementById('weeklyReportCc').value = settings.cc.join('\n');
+          document.getElementById('weeklyReportEnabled').checked = settings.enabled;
+        }
+        document.getElementById('weeklyReportEnabled').disabled = settings.development;
+        document.getElementById('weeklyReportTo').textContent = 'To: existing Finance notification email ('+settings.to+'). Read afresh at sending time.';
+        document.getElementById('weeklyReportMode').textContent = settings.development
+          ? 'Development: scheduling is disabled. Preview reads real production data without changing it. Delivery setup is managed by the administrator.'
+          : 'Scheduling follows UK summer/winter time. Live delivery uses the saved Finance address and CC list.';
+        document.getElementById('weeklyReportLast').textContent = settings.last;
+        document.getElementById('weeklyReportSend').classList.toggle('d-none',settings.development);
+        weeklyReportBusy(false);
+      }).withFailureHandler(error => {
+        document.getElementById('weeklyReportResult').textContent = error.message || String(error);
+      }).getWeeklyFinanceSettings();
+    }
+    function saveWeeklyReport() {
+      const cc = document.getElementById('weeklyReportCc').value.split(/[\s,;]+/).filter(Boolean);
+      if(cc.some(v => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) || cc.length>30) {
+        document.getElementById('weeklyReportResult').textContent='Enter valid CC email addresses (maximum 30).'; return;
+      }
+      weeklyReportBusy(true);
+      configurationMutationRun_().withSuccessHandler(raw => {
+        const result=typeof raw==='string'?JSON.parse(raw):raw;
+        document.getElementById('weeklyReportResult').textContent=result.message || result.error;
+        if (result.success) weeklyReportSettings = null;
+        loadWeeklyReportSettings();
+      }).withFailureHandler(weeklyReportFailed).saveWeeklyFinanceSettings({expectedConfigurationRevision:weeklyReportSettings.configurationRevision,cc,enabled:document.getElementById('weeklyReportEnabled').checked});
+    }
+    function weeklyReportFailed(error) {
+      document.getElementById('weeklyReportResult').textContent=error.message || String(error);
+      weeklyReportBusy(false);
+    }
+    function confirmWeeklyReportSend() {
+      showConfigurationConfirm('Send live finance report', 'Send a real report to the saved Finance address and CC recipients now?', 'Send report', () => weeklyReportAction('live'), false);
+    }
+    function weeklyReportAction(mode) {
+      weeklyReportBusy(true);
+      const result=document.getElementById('weeklyReportResult');
+      result.textContent=mode==='preview'?'Preparing the real-data PDF...':'Preparing and sending report...';
+      const runner=configurationMutationRun_().withFailureHandler(weeklyReportFailed).withSuccessHandler(response=>{
+        weeklyReportBusy(false);
+        if(mode==='preview') {
+          const bytes=Uint8Array.from(atob(response.base64),c=>c.charCodeAt(0));
+          const url=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
+          if(result.dataset.previewUrl) URL.revokeObjectURL(result.dataset.previewUrl);
+          result.dataset.previewUrl=url;
+          result.textContent='Ready: '+response.period+'. '+response.summary.pending+' pending orders. ';
+          const link=document.createElement('a'); link.href=url; link.download=response.name; link.textContent='Download PDF'; result.appendChild(link);
+        } else { result.textContent=response.message; loadWeeklyReportSettings(); }
+      });
+      if(mode==='preview') runner.getWeeklyFinancePreview();
+      else if(mode==='test') runner.sendWeeklyFinanceTest();
+      else runner.sendWeeklyFinanceNow();
+    }
+
+    function renderWorkspaceData() {
+      loadWeeklyReportSettings();
+      renderSummary();
+      populateFiltersAndForms();
+      renderBudgets();
+      renderUsers();
+      renderRoleGuide();
+      renderAudit();
+      validateSettingsDraft();
+    }
+
+    function renderWorkspace() {
+      if (!configState.budgetModal) {
+        configState.budgetModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('budgetModal'));
+        configState.userModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('userModal'));
+        configState.confirmModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('configurationConfirmModal'));
+        configState.toast = bootstrap.Toast.getOrCreateInstance(document.getElementById('configurationToast'), { delay: 4500 });
+      }
+      renderWorkspaceData();
+      document.getElementById('loadingScreen').style.display = 'none';
+      document.getElementById('workspace').style.display = 'block';
+    }
+
+    let configurationLoadGeneration = 0;
+    function loadConfiguration(options) {
+      const opts = options || {};
+      const generation = ++configurationLoadGeneration;
+      const timer = setTimeout(() => {
+        if (generation !== configurationLoadGeneration) return;
+        configurationLoadGeneration++;
+        if (opts.silent) showConfigurationToast('Refresh timed out. Please reload to try again.', true);
+        else showError('Configuration is taking too long to respond. Please reload to try again.', false);
+      }, 45000);
+      portalRun
+        .withSuccessHandler(response => {
+          if (generation !== configurationLoadGeneration) return;
+          clearTimeout(timer);
+          try {
+            const data = parseServerResponse(response);
+            if (!data.success) {
+              if (opts.silent) showConfigurationToast(data.error || 'Configuration could not be refreshed.', true);
+              else showError(data.error, data.errorCode === 'AUTH_UNAUTHORIZED');
+              return;
+            }
+            const financeDraft = document.getElementById('financeEmail').value;
+            const preserveFinanceDraft = configState.data && normalize(financeDraft) !== normalize(configState.data.systemSettings.financeEmail);
+            configState.data = data;
+            renderWorkspace();
+            if (preserveFinanceDraft) { document.getElementById('financeEmail').value = financeDraft; validateSettingsDraft(); }
+          } catch (e) {
+            if (opts.silent) showConfigurationToast('Configuration could not be refreshed. Please reload the page.', true);
+            else showError('The configuration service returned an unexpected response. Please reload or contact IT.', false);
+          }
+        })
+        .withFailureHandler(error => {
+          if (generation !== configurationLoadGeneration) return;
+          clearTimeout(timer);
+          if (opts.silent) showConfigurationToast('Configuration could not connect. Please reload the page.', true);
+          else showError('The configuration service could not connect. Please reload or contact IT.', false);
+        })
+        .getAdminConfigurationPreview();
+    }
+
+    document.getElementById('budgetSearch').addEventListener('input', renderBudgets);
+    document.getElementById('budgetStatusFilter').addEventListener('change', renderBudgets);
+    document.getElementById('userSearch').addEventListener('input', renderUsers);
+    document.getElementById('roleFilter').addEventListener('change', renderUsers);
+    document.getElementById('userStatusFilter').addEventListener('change', renderUsers);
+    document.getElementById('budgetRows').addEventListener('click', event => {
+      const button = event.target.closest('.budget-edit');
+      if (button) openBudgetDraft(decodeURIComponent(button.dataset.budget));
+    });
+    document.getElementById('userRows').addEventListener('click', event => {
+      const button = event.target.closest('.user-edit');
+      if (button) openUserDraft(decodeURIComponent(button.dataset.user));
+    });
+    ['budgetDepartment', 'budgetGlCode', 'budgetAllocation'].forEach(id => {
+      document.getElementById(id).addEventListener('input', validateBudgetDraft);
+    });
+    ['userEmail', 'userDefaultSite'].forEach(id => {
+      document.getElementById(id).addEventListener('input', validateUserDraft);
+      document.getElementById(id).addEventListener('change', validateUserDraft);
+    });
+    document.getElementById('userRole').addEventListener('change', () => {
+      syncUserDepartmentChoices();
+      validateUserDraft();
+    });
+    document.getElementById('departmentChoices').addEventListener('change', validateUserDraft);
+    document.getElementById('userProcessingDepartments').addEventListener('change', validateUserDraft);
+    ['departmentChoiceSearch', 'processingChoiceSearch'].forEach(id =>
+      document.getElementById(id).addEventListener('input', refreshAccessPickers_));
+    document.querySelectorAll('.user-addon').forEach(checkbox => checkbox.addEventListener('change', validateUserDraft));
+    document.getElementById('financeEmail').addEventListener('input', validateSettingsDraft);
+    document.getElementById('configurationConfirmButton').addEventListener('click', () => {
+      const action = configState.confirmAction;
+      configState.confirmAction = null;
+      configState.confirmModal.hide();
+      if (typeof action === 'function') action();
+    });
+
+    if (!window.bootstrap) {
+      showError('A required page component could not load. Please reload the page.', false);
+    } else {
+      initializeSectionControls();
+      loadConfiguration();
+    }
+  </script>
+</body>
+
+</html>

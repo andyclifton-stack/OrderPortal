@@ -1,0 +1,5 @@
+output/**
+testing/**
+tmp/**
+local-mock.js
+skeleton_test.html

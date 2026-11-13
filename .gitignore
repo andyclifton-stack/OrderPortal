@@ -1,2 +1,8 @@
 node_modules/
 desktop.ini
+output/
+tmp/
+*.backup
+testing/*.png
+testing/*.jpg
+testing/staff-uat/

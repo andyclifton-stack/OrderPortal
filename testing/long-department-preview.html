@@ -1,0 +1,1581 @@
+<!doctype html><html data-theme="dark"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css"><style>
+      /* --- CSS VARIABLES --- */
+      :root {
+         --brand-blue: #283583;
+         --brand-yellow: #FAB600;
+
+         /* Light Mode Defaults */
+         --bg-body: #f4f6f9;
+         --bg-card: #ffffff;
+         --text-main: #333333;
+         --text-muted: #6c757d;
+         --border-color: #dee2e6;
+         --input-bg: #ffffff;
+         --input-group-bg: #f8f9fa;
+         --header-bg: #f8f9fa;
+         --hover-bg: #f1f1f1;
+
+         /* Dynamic Colors */
+         --link-blue: #283583;
+         --badge-bg: #ffffff;
+         --badge-text: #212529;
+      }
+
+      /* Dark Mode Overrides */
+      [data-theme="dark"] {
+         --bg-body: #121212;
+         --bg-card: #1e1e1e;
+         --text-main: #e0e0e0;
+         --text-muted: #adb5bd;
+         --border-color: #444444;
+         --input-bg: #2d2d2d;
+         --input-group-bg: #2d2d2d;
+         --header-bg: #2c2c2c;
+         --hover-bg: #333333;
+
+         /* Dynamic Colors Dark */
+         --link-blue: #6ea8fe;
+         --badge-bg: #2c2c2c;
+         --badge-text: #ffffff;
+      }
+
+      /* Mobile Header Tools Positioning */
+      @media (max-width: 768px) {
+         #mobileHeaderTools {
+            position: absolute !important;
+            top: 10px !important;
+            right: 15px !important;
+            left: auto !important;
+            margin-top: 0 !important;
+            width: auto !important;
+            z-index: 1050;
+         }
+
+         .brand-header {
+            position: relative !important;
+            padding-right: 40px;
+         }
+      }
+
+      /* --- SKELETON LOADER --- */
+      .skeleton-screen {
+         position: fixed;
+         top: 0;
+         left: 0;
+         width: 100%;
+         height: 100%;
+         z-index: 10002;
+         background: var(--bg-body);
+         padding: 1rem;
+         overflow: auto;
+      }
+
+      .skeleton-box {
+         background: #e0e0e0;
+         border-radius: 4px;
+         position: relative;
+         overflow: hidden;
+      }
+
+      .skeleton-box::after {
+         content: "";
+         position: absolute;
+         top: 0;
+         right: 0;
+         bottom: 0;
+         left: 0;
+         transform: translateX(-100%);
+         background-image: linear-gradient(90deg, rgba(255, 255, 255, 0) 0, rgba(255, 255, 255, 0.2) 20%, rgba(255, 255, 255, 0.5) 60%, rgba(255, 255, 255, 0));
+         animation: shimmer 2s infinite;
+      }
+
+      [data-theme="dark"] .skeleton-box {
+         background: #2d2d2d;
+      }
+
+      [data-theme="dark"] .skeleton-box::after {
+         background-image: linear-gradient(90deg, rgba(255, 255, 255, 0) 0, rgba(255, 255, 255, 0.05) 20%, rgba(255, 255, 255, 0.1) 60%, rgba(255, 255, 255, 0));
+      }
+
+      @keyframes shimmer {
+         100% {
+            transform: translateX(100%);
+         }
+      }
+
+      .sk-header {
+         height: 60px;
+         width: 300px;
+         margin-bottom: 30px;
+      }
+
+      .sk-card {
+         height: 120px;
+         width: 100%;
+         margin-bottom: 20px;
+         border-radius: 8px;
+      }
+
+      .sk-filter {
+         height: 50px;
+         width: 100%;
+         margin-bottom: 20px;
+      }
+
+      .sk-table-row {
+         height: 40px;
+         width: 100%;
+         margin-bottom: 10px;
+      }
+
+      .loading-notice {
+         display: flex; align-items: center; gap: 1rem;
+         margin: 1rem 0; padding: 1rem 1.25rem;
+         border-left: 4px solid var(--brand-blue);
+         border-radius: 6px; background: var(--bg-card, #fff);
+         color: var(--text-main); box-shadow: 0 2px 8px rgba(0,0,0,.06);
+      }
+      .loading-notice strong, .loading-notice small { display: block; }
+      .loading-notice small { margin-top: .25rem; }
+      .loading-value { display: inline-block; width: 80px; height: 18px; vertical-align: middle; }
+      .loading-toolbar { display: flex; gap: .75rem; flex-wrap: wrap; margin: 1rem 0; }
+      .loading-toolbar input { flex: 1; min-width: 140px; }
+      .loading-table-head { display: flex; justify-content: space-between; padding: .75rem 0; font-weight: 600; }
+      @media (prefers-reduced-motion: reduce) {
+         .skeleton-box::after, .loading-notice .spinner-border { animation: none; }
+      }
+
+      /* The static shell communicates loading; the overlay only shields clicks. */
+      /* Must be above Skeleton (10002) */
+      #overlay.initial-load {
+         background: transparent !important;
+         backdrop-filter: none !important;
+         z-index: 10005 !important;
+      }
+
+      /* Remove White Box during Initial Load so we only see text floating over Skeleton */
+      #overlay.initial-load #spinner {
+         display: none !important;
+      }
+
+      #overlay.initial-load .spinner-border {
+         display: none !important;
+      }
+
+      /* Pure Text Mode (Initial Load) */
+      #overlay.initial-load #loadingText {
+         font-size: 1.3rem;
+         /* Reduced from 1.75rem */
+         font-weight: 600;
+         color: #ffffff !important;
+         background: rgba(40, 53, 131, 0.95);
+         /* Slightly more opaque */
+         padding: 10px 30px;
+         /* Reduced padding */
+         border-radius: 50px;
+         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+         /* Softer shadow */
+         letter-spacing: 0.5px;
+      }
+
+      /* Processing Mode (Simulation/Transitions) - Dimmed + Blur, No Box */
+      #overlay.processing-state {
+         background: rgba(0, 0, 0, 0.6) !important;
+         backdrop-filter: blur(4px) !important;
+      }
+
+      #overlay.processing-state #spinner {
+         background: transparent !important;
+         box-shadow: none !important;
+      }
+
+      #overlay.processing-state #loadingText {
+         color: #ffffff !important;
+         font-size: 1.2rem;
+         margin-top: 15px;
+      }
+
+      #overlay.processing-state .spinner-border {
+         width: 3rem;
+         height: 3rem;
+         color: #ffffff !important;
+      }
+
+      /* --- GLOBAL STYLES --- */
+      body {
+         background-color: var(--bg-body);
+         font-family: 'Open Sans', sans-serif;
+         color: var(--text-main);
+         padding-bottom: 100px !important;
+         transition: background 0.3s, color 0.3s;
+      }
+
+      /* Element Theming */
+      .card,
+      .budget-box,
+      .modal-content,
+      .pagination-bar,
+      .search-toolbar,
+      .list-group-item,
+      .card-header {
+         background-color: var(--bg-card) !important;
+         color: var(--text-main) !important;
+         border-color: var(--border-color) !important;
+      }
+
+      /* Input Fields */
+      input,
+      select,
+      textarea {
+         background-color: var(--input-bg) !important;
+         color: var(--text-main) !important;
+         border-color: var(--border-color) !important;
+      }
+
+      /* Keep the white Bootstrap tick visible against both themes. */
+      .form-check-input:checked,
+      .form-check-input[type="checkbox"]:indeterminate {
+         background-color: var(--brand-blue) !important;
+         border-color: var(--brand-blue) !important;
+      }
+
+      [data-theme="dark"] #detailsBody .bg-white,
+      [data-theme="dark"] #detailsBody .bg-light {
+         background-color: var(--input-bg) !important;
+         color: var(--text-main) !important;
+         border-color: var(--border-color) !important;
+      }
+
+      [data-theme="dark"] #detailsBody .text-primary {
+         color: var(--link-blue) !important;
+      }
+
+      .bulk-review-list {
+         display: grid;
+         gap: 0.75rem;
+      }
+
+      .bulk-review-item {
+         display: grid;
+         grid-template-columns: minmax(220px, 2fr) 100px minmax(130px, 0.8fr) minmax(155px, 0.9fr);
+         gap: 0.75rem;
+         align-items: start;
+         padding: 0.85rem;
+         background: var(--card-bg);
+         border: 1px solid var(--border-color);
+         border-radius: 0.5rem;
+      }
+
+      .bulk-review-description {
+         min-width: 0;
+      }
+
+      .bulk-review-description .fw-bold {
+         overflow-wrap: anywhere;
+      }
+
+      .bulk-review-note {
+         grid-column: 1 / -1;
+      }
+
+      .bulk-review-field label {
+         display: block;
+         margin-bottom: 0.25rem;
+         color: var(--text-muted);
+         font-size: 0.72rem;
+         font-weight: 700;
+         text-transform: uppercase;
+      }
+
+      .bulk-review-total {
+         min-width: 150px;
+      }
+
+      @media (max-width: 768px) {
+         .bulk-review-item {
+            grid-template-columns: 1fr 1fr;
+         }
+
+         .bulk-review-description {
+            grid-column: 1 / -1;
+         }
+
+         .bulk-review-total {
+            width: 100%;
+            min-width: 0;
+         }
+      }
+
+      /* Input Group Labels */
+      .input-group-text {
+         background-color: var(--input-group-bg);
+         color: var(--text-muted);
+         border-color: var(--border-color);
+      }
+
+      /* Fix placeholder text in dark mode */
+      [data-theme="dark"] ::placeholder {
+         color: #6c757d;
+         opacity: 1;
+      }
+
+      /* Focus states */
+      input:focus,
+      select:focus,
+      textarea:focus {
+         border-color: var(--link-blue) !important;
+         box-shadow: 0 0 0 0.25rem rgba(40, 53, 131, 0.25);
+      }
+
+      /* --- TABLE DARK MODE FIXES --- */
+      [data-theme="dark"] .table {
+         --bs-table-bg: var(--bg-card);
+         --bs-table-color: var(--text-main);
+         --bs-table-border-color: var(--border-color);
+      }
+
+      /* CONFIRMED COMPACT VIEW */
+      .table>tbody>tr>td,
+      .table>thead>tr>th {
+         padding: 0.25rem 0.5rem !important;
+         vertical-align: middle;
+      }
+
+      /* Force buttons and placeholders to separate height constraints */
+      .btn-action-icon,
+      .placeholder-icon {
+         width: 28px !important;
+         height: 28px !important;
+         font-size: 0.9rem !important;
+      }
+
+      .btn-action-manage,
+      .placeholder-manage {
+         height: 28px !important;
+         line-height: 26px !important;
+         /* Vertically center text */
+         font-size: 0.75rem !important;
+         padding: 0 !important;
+      }
+
+      .badge {
+         padding: 0.35em 0.65em !important;
+      }
+
+      [data-theme="dark"] .table thead th {
+         background-color: var(--header-bg);
+         color: var(--text-main);
+         border-bottom: 2px solid var(--border-color);
+      }
+
+      [data-theme="dark"] .table tbody td {
+         background-color: var(--bg-card);
+         color: var(--text-main);
+         border-bottom: 1px solid var(--border-color);
+      }
+
+      [data-theme="dark"] .table-hover tbody tr:hover td {
+         background-color: var(--hover-bg);
+      }
+
+      /* --- TAB FIXES --- */
+      .nav-tabs .nav-link {
+         color: var(--text-muted);
+      }
+
+      .nav-tabs .nav-link.active {
+         font-weight: bold;
+         background-color: var(--bg-card);
+         border-color: var(--border-color) var(--border-color) var(--bg-card);
+         color: var(--link-blue);
+      }
+
+      [data-theme="dark"] .nav-tabs .nav-link.active {
+         color: #fff;
+      }
+
+      .nav-tabs {
+         border-bottom: 1px solid var(--border-color);
+      }
+
+      /* --- SEARCH TOOLBAR (CONDENSED) --- */
+      .search-toolbar {
+         border-bottom: 1px solid var(--border-color);
+         padding: 10px;
+         /* Reduced from 20px */
+         margin-bottom: 8px;
+         /* Reduced from 15px */
+      }
+
+      /* --- GLOBAL DENSITY REDUCTION --- */
+      html,
+      body {
+         font-size: 14px;
+      }
+
+      /* Standard for dashboards is often 14px */
+
+      /* --- HEADER COMPACTION --- */
+      .brand-header {
+         margin-bottom: 0.5rem !important;
+      }
+
+      .brand-title {
+         font-size: 1.5rem !important;
+         margin: 0 !important;
+      }
+
+      /* Only apply padding reduction if the body has p-4, but keep bottom padding for footer */
+      body.p-4 {
+         padding: 1rem 1rem 100px 1rem !important;
+      }
+
+      .budget-box,
+      .card {
+         padding: 1rem !important;
+         /* Force tighter padding on cards/boxes */
+      }
+
+      /* Make inputs smaller in toolbar */
+      /* Make inputs smaller in toolbar */
+      .form-control,
+      .form-select,
+      .btn {
+         padding: 0.25rem 0.5rem;
+         font-size: 0.875rem;
+         min-height: 32px;
+      }
+
+      /* Fix Select Arrow Overlap */
+      .form-select {
+         padding-right: 2rem !important;
+         /* Ensure space for chevron */
+         background-position: right 0.5rem center;
+      }
+
+      /* Tighten up the row margins in the dashboard if any */
+      .row.gy-4 {
+         --bs-gutter-y: 1rem !important;
+      }
+
+      /* --- BUTTON VISIBILITY FIXES --- */
+      /* Manage Button: Invert colors in dark mode */
+      [data-theme="dark"] .btn-outline-dark {
+         color: #e0e0e0;
+         border-color: #666;
+      }
+
+      [data-theme="dark"] .btn-outline-dark:hover {
+         background-color: #e0e0e0;
+         color: #000;
+      }
+
+      /* Pagination Buttons */
+      [data-theme="dark"] .btn-outline-secondary {
+         color: #adb5bd;
+         border-color: #666;
+      }
+
+      [data-theme="dark"] .btn-outline-secondary:hover {
+         background-color: #666;
+         color: #fff;
+      }
+
+      /* --- SPECIFIC HELPERS --- */
+      .bg-light {
+         background-color: var(--header-bg) !important;
+      }
+
+      .text-muted {
+         color: var(--text-muted) !important;
+      }
+
+      /* Alerts - Dim them in dark mode */
+      [data-theme="dark"] .alert-warning {
+         background-color: #332701;
+         color: #ffda6a;
+         border-color: #664d03;
+      }
+
+      [data-theme="dark"] .alert-danger {
+         background-color: #2c0b0e;
+         color: #ea868f;
+         border-color: #842029;
+      }
+
+      /* Brand Header */
+      .brand-header {
+         border-bottom: 4px solid var(--brand-yellow);
+         padding-bottom: 15px;
+         margin-bottom: 25px;
+      }
+
+      .brand-title {
+         color: var(--brand-blue);
+         font-weight: 700;
+         text-transform: uppercase;
+      }
+
+      [data-theme="dark"] .brand-title {
+         color: #8da2fb;
+      }
+
+      /* Budget Box */
+      .budget-box {
+         border-left: 6px solid var(--brand-yellow);
+         padding: 20px;
+         border-radius: 4px;
+         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+         height: 100%;
+         display: flex;
+         flex-direction: column;
+         justify-content: center;
+         background-color: var(--bg-card);
+      }
+
+      .budget-val {
+         color: var(--brand-blue);
+         font-weight: 800;
+         font-size: 2rem;
+         line-height: 1;
+         margin-top: auto;
+      }
+
+      [data-theme="dark"] .budget-val {
+         color: #fff;
+      }
+
+      .progress {
+         height: 10px;
+         margin-top: 15px;
+         background-color: var(--border-color);
+         border-radius: 5px;
+      }
+
+      /* Toggle Button */
+      .theme-icon {
+         cursor: pointer;
+         padding: 5px;
+         font-size: 1.2rem;
+         transition: color 0.3s;
+         margin-right: 10px;
+         color: var(--text-muted);
+      }
+
+      .theme-icon:hover {
+         color: var(--text-main);
+      }
+
+      /* User Badge */
+      .user-badge {
+         background-color: var(--badge-bg);
+         color: var(--badge-text);
+         border: 1px solid var(--border-color);
+      }
+
+      /* Badges & Buttons */
+      .badge-ordered {
+         background-color: #198754;
+         color: white;
+      }
+
+      .badge-processed {
+         background-color: #0d6efd;
+         color: white;
+      }
+
+      .badge-pending {
+         background-color: var(--brand-yellow);
+         color: #000;
+      }
+
+      /* Keep the order list compact without hiding important status context. */
+      .order-status-cell {
+         white-space: nowrap;
+      }
+      @media (min-width: 769px) {
+         #orderTable .order-status-column, #orderTable .order-status-cell,
+         #orderTable .order-actions-column { width:1%; white-space:nowrap; }
+         #orderTable .order-status-column, #orderTable .order-status-cell { text-align:right; }
+         #orderTable .order-actions-column .action-cell { flex-wrap:nowrap; }
+      }
+
+      .order-status-line {
+         display: inline-flex;
+         align-items: center;
+         gap: 0.25rem;
+         flex-wrap: nowrap;
+         white-space: nowrap;
+      }
+
+      .order-status-line .badge {
+         flex: 0 0 auto;
+      }
+
+      .order-status-detail {
+         color: var(--text-muted);
+         font-size: 0.75rem;
+         line-height: 1.2;
+      }
+
+      .order-status-warning {
+         display: inline-flex;
+         align-items: center;
+         gap: 0.2rem;
+      }
+
+      .order-status-warning .bi {
+         font-size: 0.7rem;
+      }
+
+      .order-status-icon {
+         display: inline-flex;
+         align-items: center;
+         justify-content: center;
+         min-width: 1.75em;
+         padding: 0.35em 0.5em !important;
+         line-height: 1.25;
+      }
+
+      .order-status-icon .bi {
+         font-size: 0.75rem;
+      }
+
+      .order-status-action {
+         border: 0;
+         cursor: pointer;
+         font: inherit;
+      }
+
+      .order-status-action:hover,
+      .order-status-action:focus-visible {
+         filter: brightness(0.94);
+      }
+
+      .badge-invoice {
+         background-color: #cff4fc;
+         color: #055160;
+         border: 1px solid #9eeaf9;
+      }
+
+      [data-theme="dark"] .badge-invoice {
+         background-color: rgba(13, 202, 240, 0.18);
+         color: #9eeaf9;
+         border-color: rgba(13, 202, 240, 0.35);
+      }
+
+      .cost-difference-value {
+         color: #b54708;
+         font-weight: 700;
+         text-decoration: underline dotted;
+         text-underline-offset: 2px;
+         cursor: default;
+      }
+
+      .order-cost-column {
+         min-width: 105px;
+         width: 105px;
+         white-space: nowrap;
+      }
+
+      .portal-width {
+         max-width: 1400px;
+         margin-left: auto;
+         margin-right: auto;
+         width: 100%;
+      }
+
+      @media (min-width: 1600px) {
+         .portal-width {
+            max-width: 1600px;
+         }
+      }
+
+      [data-theme="dark"] .cost-difference-value {
+         color: #ffcc80;
+      }
+
+      .description-truncate {
+         display: inline-block;
+         max-width: 260px;
+         overflow: hidden;
+         text-overflow: ellipsis;
+         white-space: nowrap;
+         vertical-align: bottom;
+      }
+
+      .supplier-truncate {
+         display: inline-block;
+         max-width: 135px;
+         overflow: hidden;
+         text-overflow: ellipsis;
+         white-space: nowrap;
+         vertical-align: bottom;
+      }
+
+      @media (max-width: 768px) {
+         .description-truncate {
+            max-width: 180px;
+         }
+
+         .supplier-truncate {
+            max-width: 150px;
+         }
+      }
+
+      @media (min-width: 769px) and (max-width: 1399px) {
+         /* Reclaim a little space across the table instead of increasing page width. */
+         #orderTable > :not(caption) > * > * {
+            padding-left: 0.35rem !important;
+            padding-right: 0.35rem !important;
+         }
+
+         #orderTable .description-truncate {
+            max-width: 220px;
+         }
+
+         #orderTable .supplier-truncate {
+            max-width: 120px;
+         }
+      }
+
+      .btn-note {
+         border: none;
+         background: none;
+         color: var(--text-muted);
+         transition: color 0.2s;
+      }
+
+      .btn-note:hover {
+         color: var(--link-blue);
+      }
+
+      [data-theme="dark"] .btn-note:hover {
+         color: #fff;
+      }
+
+      .btn-note.has-notes {
+         color: #0dcaf0;
+      }
+
+      /* Pending tint covers every cell, including orders with a budget warning. */
+      #orderTable {
+         --pending-row-bg: #fff9e9;
+         --pending-row-hover-bg: #fff1cb;
+      }
+
+      [data-theme="dark"] #orderTable {
+         --pending-row-bg: #292d32;
+         --pending-row-hover-bg: #343a40;
+      }
+
+      [data-theme="dark"] #orderTable tbody tr.row-pending:not(.row-over-budget) {
+         border-left: 3px solid #bb9852;
+      }
+
+      #orderTable tbody tr.row-pending > td {
+         background-color: var(--pending-row-bg) !important;
+         --bs-table-accent-bg: transparent;
+         --bs-table-bg-type: transparent;
+         --bs-table-bg-state: transparent;
+      }
+
+      #orderTable.table-hover tbody tr.row-pending:hover > td {
+         background-color: var(--pending-row-hover-bg) !important;
+         --bs-table-accent-bg: transparent;
+         --bs-table-bg-state: transparent;
+      }
+
+      /* Over Budget Row - Custom Styling for Contrast */
+      .row-over-budget {
+         background-color: #fff5f5 !important;
+         /* Very light red */
+         border-left: 4px solid #dc3545 !important;
+      }
+
+      [data-theme="dark"] .row-over-budget {
+         background-color: rgba(220, 53, 69, 0.1) !important;
+         /* Transparent red */
+         border-left: 4px solid #ea868f !important;
+         /* Lighter red border for dark mode */
+      }
+
+      /* Ensure text remains standard color in dark mode */
+      [data-theme="dark"] .row-over-budget td {
+         color: var(--text-main) !important;
+      }
+
+      /* Hover state compatibility - slight darken of the red tint */
+      .table-hover tbody tr.row-over-budget:hover td {
+         background-color: rgba(220, 53, 69, 0.15) !important;
+         color: var(--text-main) !important;
+      }
+
+      .row-transfer td {
+         background-color: #fdeaea !important;
+         color: #842029 !important;
+      }
+
+      .row-transfer {
+         border-left: 4px solid #dc3545 !important;
+      }
+
+      .table-hover tbody tr.row-transfer:hover td {
+         background-color: #f8d7da !important;
+         color: #58151c !important;
+      }
+
+      [data-theme="dark"] .row-transfer td {
+         background-color: rgba(220, 53, 69, 0.18) !important;
+         color: #f8d7da !important;
+      }
+
+      [data-theme="dark"] .table-hover tbody tr.row-transfer:hover td {
+         background-color: rgba(220, 53, 69, 0.25) !important;
+         color: #fff5f5 !important;
+      }
+
+      /* Footer */
+      .app-footer {
+         position: fixed;
+         bottom: 0;
+         left: 0;
+         width: 100%;
+         background-color: #343a40;
+         border-top: 3px solid var(--brand-yellow);
+         color: #e9ecef;
+         padding: 12px 0;
+         z-index: 1000;
+         font-size: 0.75rem;
+         display: flex;
+         justify-content: center;
+         align-items: center;
+         box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      /* Action Buttons */
+      .btn-action-icon {
+         width: 32px;
+         height: 32px;
+         font-size: 1rem;
+         padding: 0;
+         display: inline-flex;
+         align-items: center;
+         justify-content: center;
+      }
+
+      .action-cell {
+         display: flex;
+         justify-content: flex-start;
+         align-items: center;
+         gap: 4px;
+      }
+
+      /* Alignment Fixes */
+      .btn-action-manage {
+         width: 80px;
+         padding-left: 0;
+         padding-right: 0;
+      }
+
+      .placeholder-manage {
+         width: 80px;
+         height: 31px;
+      }
+
+      .placeholder-icon {
+         width: 32px;
+         height: 32px;
+      }
+
+      @media (max-width: 768px) {
+         .table thead {
+            display: none;
+         }
+
+         .table tr {
+            display: block;
+            margin-bottom: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+         }
+
+         .table td {
+            display: flex;
+            justify-content: space-between;
+            border: none;
+            padding: 5px 0;
+         }
+
+         .table td::before {
+            content: attr(data-label);
+            font-weight: bold;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            padding-right: 15px;
+            /* Added gap */
+         }
+
+         .action-cell {
+            justify-content: space-between;
+            width: 100%;
+            margin-top: 10px;
+            border-top: 1px solid var(--border-color);
+            padding-top: 10px;
+         }
+
+         /* --- NEW MOBILE UI FIXES --- */
+
+         /* 1. Header Fixes */
+         /* Allow header to wrap naturally */
+         .brand-header {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 10px;
+         }
+
+         /* The container for icons + username */
+         .brand-header>div:last-child {
+            width: 100%;
+            justify-content: space-between;
+            /* Spread them out or align better */
+            margin-top: 5px;
+         }
+
+         /* Ensure username wraps if really long */
+         #userDisplay {
+            white-space: normal;
+            text-align: right;
+            max-width: 200px;
+            word-break: break-all;
+         }
+
+         /* 2. Budget Overview / Admin Controls Fixes */
+         #filterCard .card {
+            /* Switch to flex column to stack items */
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            justify-content: flex-start !important;
+            gap: 10px;
+            padding-top: 15px !important;
+            padding-bottom: 15px !important;
+         }
+
+         /* Select Box Container - Center it or let it stretch */
+         #filterCard .card>div:first-child {
+            width: 100%;
+            justify-content: center;
+            margin-bottom: 5px;
+         }
+
+         /* Reset absolute positioning for the links */
+         #filterCard .position-absolute {
+            position: static !important;
+            text-align: center !important;
+            margin: 0 !important;
+            width: 100%;
+         }
+
+         #deptFilter {
+            width: 100% !important;
+            /* Make dropdown full width for easier tapping */
+         }
+
+         /* 3. Tab Navigation Fixes */
+         .nav-tabs {
+            flex-wrap: wrap;
+            /* Ensure they wrap if needed */
+            justify-content: center;
+            /* Center them */
+         }
+
+         .nav-tabs .nav-link {
+            padding: 10px 15px !important;
+            /* Reduce padding */
+            font-size: 0.9rem;
+            /* Slightly smaller text */
+            flex-grow: 1;
+            /* Make tabs grow to fill rounded space */
+            text-align: center;
+         }
+
+         /* Adjust card header to allow more space if needed */
+         .card-header {
+            height: auto !important;
+         }
+      }
+
+      /* --- TOOLTIP STYLE --- */
+      .custom-tooltip {
+         position: fixed;
+         z-index: 10000;
+         background: rgba(33, 37, 41, 0.95);
+         color: #fff;
+         padding: 8px 12px;
+         border-radius: 6px;
+         font-size: 0.85rem;
+         pointer-events: none;
+         display: none;
+         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+         font-weight: 500;
+         border: 1px solid rgba(255, 255, 255, 0.1);
+         max-width: min(420px, calc(100vw - 32px));
+         line-height: 1.4;
+         white-space: normal;
+         word-break: break-word;
+      }
+/* Compact finance form with persistent actions on smaller screens. */
+#financeModal .modal-dialog { max-width:960px; }
+#financeModal .modal-body { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px 20px; }
+#financeModal .modal-body > .mb-3 { margin-bottom:0!important; }
+#financeModal #orderCorrectionFields { grid-column:1/-1; margin-bottom:0!important; padding:12px!important; }
+#financeModal #orderCorrectionFields .row > div { width:33.333333%; }
+#financeModal #orderCorrectionFields .row > div:has(#correctionDesc) { width:66.666667%; }
+#financeModal #finMessage { min-height:66px; }
+#financeModal .finance-actions { gap:10px; padding:12px 16px; }
+#financeModal .finance-actions > * { margin:0; }
+#financeModal .finance-primary-actions { display:flex; gap:16px; width:100%; }
+#financeModal #financeCancelOrder { flex:1; }
+#financeModal #saveProcessButton { flex:3; }
+@media (max-width:575px) {
+ #financeModal .modal-dialog { margin:8px; }
+ #financeModal .modal-body { grid-template-columns:1fr; }
+ #financeModal #orderCorrectionFields .row > div,
+ #financeModal #orderCorrectionFields .row > div:has(#correctionDesc) { width:100%; }
+ #financeModal .finance-primary-actions { gap:8px; }
+ #financeModal #financeCancelOrder { min-width:110px; }
+}
+   </style>
+<style id="portal-polish">
+/* Shared visual rules, embedded into each standalone Apps Script page. */
+:root {
+  --polish-blue: #283583;
+  --polish-blue-hover: #202b6b;
+  --polish-line: #dce1e8;
+  --polish-soft: #f1f4fa;
+  --polish-muted: #596579;
+  --polish-shadow: 0 2px 8px rgba(24,39,75,.06);
+  --polish-success-bg: #e6f3eb;
+  --polish-success-text: #23613e;
+  --polish-info-bg: #eaf0fc;
+  --polish-info-text: #284d87;
+  --polish-warning-bg: #fff1cb;
+  --polish-warning-text: #775500;
+}
+[data-theme="dark"], html.dark {
+  --polish-blue: #8da9ff;
+  --polish-line: #424954;
+  --polish-soft: #252d3b;
+  --polish-muted: #b4bdcc;
+  --polish-shadow: 0 2px 8px rgba(0,0,0,.16);
+  --polish-success-bg: #203a2d;
+  --polish-success-text: #9adbb4;
+  --polish-info-bg: #24344f;
+  --polish-info-text: #b3ccff;
+  --polish-warning-bg: #40351b;
+  --polish-warning-text: #f3d883;
+}
+body, .portal-loading { font-family: 'Open Sans', sans-serif; }
+button, input, select, textarea { font-family: inherit; }
+h1, h2, h3, h4, .brand-title, .brand-subtitle { letter-spacing: -.015em; }
+.brand-title, .portal-loading-brand strong { font-size: 1.5rem !important; font-weight: 700; }
+.brand-kicker { letter-spacing: .04em; }
+.card, .budget-box, .panel, .summary-card, .portal-loading-card,
+#dashboardWorkspace main .shadow { border-radius: 10px !important; box-shadow: var(--polish-shadow) !important; }
+.modal-content { border-radius: 10px; box-shadow: 0 8px 28px rgba(24,39,75,.16) !important; }
+.dropdown-menu, #settings-menu { border-radius: 8px; box-shadow: var(--polish-shadow); }
+.btn, #dashboardWorkspace button, #dashboardWorkspace select, .portal-loading-notice button {
+  border-radius: 6px; font-weight: 600;
+}
+.form-control, .form-select { border-radius: 6px; }
+.btn-primary, .btn-brand, #btnInvoiceSaveClose, #successModal .btn {
+  --bs-btn-bg: #283583; --bs-btn-border-color: #283583;
+  --bs-btn-hover-bg: #202b6b; --bs-btn-hover-border-color: #202b6b;
+  --bs-btn-active-bg: #202b6b; --bs-btn-active-border-color: #202b6b;
+  --bs-btn-disabled-bg: #283583; --bs-btn-disabled-border-color: #283583;
+  background-color: #283583; border-color: #283583; color: #fff;
+}
+.btn-primary:hover, .btn-brand:hover, #btnInvoiceSaveClose:hover, #successModal .btn:hover {
+  background-color: #202b6b; border-color: #202b6b; color: #fff;
+}
+.btn-outline-secondary, #export-btn { border-color: var(--polish-line); color: var(--polish-muted); }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--polish-blue); outline-offset: 3px;
+}
+.badge { border-radius: 5px; padding: .38em .6em; font-weight: 600; line-height: 1.25; }
+.badge-ordered, .badge.text-bg-success, .status-active {
+  background: var(--polish-success-bg) !important; color: var(--polish-success-text) !important;
+}
+.badge-processed, .badge-invoice {
+  background: var(--polish-info-bg) !important; color: var(--polish-info-text) !important; border-color: transparent;
+}
+.badge-pending, .badge.text-bg-warning {
+  background: var(--polish-warning-bg) !important; color: var(--polish-warning-text) !important;
+}
+.badge.bg-secondary, .status-inactive {
+  background: var(--polish-soft) !important; color: var(--polish-muted) !important;
+}
+.table { --bs-table-hover-bg: var(--polish-soft); }
+.table thead th, #dashboardWorkspace thead th { font-weight: 600; letter-spacing: .025em; }
+.table tbody td { border-bottom-color: var(--polish-line); }
+#orderTable tbody tr:not(.row-over-budget):not(.row-transfer):hover td {
+  background-color: var(--polish-soft); --bs-table-accent-bg: var(--polish-soft);
+}
+#orderTable tr:has(.chk-cell input:checked) td { box-shadow: inset 0 0 0 9999px rgba(66,105,190,.09); }
+#orderTable tr:has(.chk-cell input:checked) td:first-child { border-left: 3px solid var(--polish-blue); }
+.order-cost-column, [data-label="Allocation"], [data-label="Spent"], [data-label="Remaining"],
+#valRemaining, #valCommitted, #valSpent, #dashboardWorkspace .font-bold {
+  font-variant-numeric: tabular-nums;
+}
+@media(min-width:768px) {
+  [data-label="Allocation"], [data-label="Spent"], [data-label="Remaining"], .money-heading { text-align:right; }
+}
+.empty-state, .portal-empty { color:var(--polish-muted); text-align:center; padding:28px 16px !important; }
+.portal-empty strong, .empty-state strong { display:block; margin-bottom:4px; font-weight:600; }
+#paginationBar[style*="display: none"] { display:none !important; }
+.alert, .validation-box, .toast, .loading-notice, .portal-loading-notice { border-radius:8px; }
+.toast { box-shadow:var(--polish-shadow) !important; }
+.toast-success { border-left:4px solid var(--polish-success-text) !important; }
+.toast-danger { border-left:4px solid #c34545 !important; }
+.portal-loading-notice button { padding:8px 12px; border:1px solid var(--polish-line); background:var(--polish-soft); color:inherit; }
+/* WCAG AA contrast corrections: text 4.5:1; essential control edges 3:1. */
+.text-muted, .form-text, .input-group-text, .nav-tabs .nav-link:not(.active),
+#dashboardWorkspace .text-gray-500, #dashboardWorkspace .text-text-muted-light {
+  color:var(--polish-muted) !important;
+}
+:root { --contrast-control:#747e8c; --contrast-action:#245c9e; --contrast-danger:#b42336; --contrast-warning:#846000; }
+[data-theme="dark"], html.dark { --contrast-control:#9aa7b8; --contrast-action:#a6c6ff; --contrast-danger:#ff9ba8; --contrast-warning:#f3d883; }
+.form-control, .form-select, .form-check-input:not(:checked), #dept-filter { border-color:var(--contrast-control) !important; }
+.form-control::placeholder, input::placeholder, textarea::placeholder { color:var(--polish-muted) !important; opacity:1; }
+.btn-note, .btn-note.has-notes, .btn-action-icon.text-info { color:var(--contrast-action) !important; }
+.btn-action-icon.text-warning { color:var(--contrast-warning) !important; }
+.btn-action-icon.text-danger { color:var(--contrast-danger) !important; }
+[data-theme="dark"] .text-primary { color:var(--contrast-action) !important; }
+[data-theme="dark"] .form-check-input:checked { background-color:#3c69b4; border-color:#9aa7b8; }
+[data-theme="dark"] .btn-outline-primary { color:#a6c6ff; border-color:#a6c6ff; }
+[data-theme="dark"] .btn-outline-primary:hover { background-color:#283583; color:#fff; }
+[data-theme="dark"] .btn-close { filter:invert(1) grayscale(100%) brightness(200%); opacity:.85; }
+.form-switch .form-check-input:not(:checked) { background-color:var(--contrast-control); }
+[data-theme="dark"] .form-check-input:not(:checked):not([role="switch"]) { background-color:#1f2937; }
+[data-theme="dark"] #approvalModal .modal-header { background-color:#40351b !important; }
+[data-theme="dark"] #approvalResubmitButton { color:#f3d883 !important; border-color:#f3d883; }
+[data-theme="dark"] #approvalResubmitButton:hover { background-color:#40351b; }
+[data-theme="dark"] .btn-outline-danger { color:#ff9ba8; border-color:#ff9ba8; }
+[data-theme="dark"] .btn-outline-danger:hover { background-color:#842029; color:#fff; }
+[data-theme="dark"] .text-danger { color:#ff9ba8 !important; }
+[data-theme="dark"] .text-success { color:#9adbb4 !important; }
+[data-theme="dark"] .text-warning { color:#f3d883 !important; }
+[data-theme="dark"] #errorBox { background-color:#1e1e1e !important; color:#ff9ba8 !important; }
+[data-theme="dark"] #errorDiagnostics { color:#e0e0e0 !important; }
+/* Treat joined toolbar controls as one field with a complete outer edge. */
+.search-toolbar .input-group { border:1px solid var(--contrast-control); border-radius:6px; overflow:hidden; }
+.search-toolbar .input-group > .form-control,
+.search-toolbar .input-group > .input-group-text,
+.search-toolbar .input-group > .btn { border:0 !important; margin-left:0 !important; }
+.search-toolbar .input-group:focus-within { outline:2px solid var(--polish-blue); outline-offset:2px; }
+.search-toolbar .input-group .form-control:focus { box-shadow:none; outline:0; }
+[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator { filter:invert(1); opacity:.85; }
+.search-toolbar .form-switch { padding-left:3.1em; }
+#pendingFilter {
+  width:2.6em; height:1.4em; margin-left:-3.1em; cursor:pointer;
+  border:1px solid var(--contrast-control) !important;
+  background-color:#505c6d !important;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Ccircle cx='10' cy='10' r='7' fill='white'/%3E%3C/svg%3E") !important;
+  background-size:auto 100%; background-repeat:no-repeat; background-position:left center;
+}
+#pendingFilter:checked { background-color:#283583 !important; background-position:right center; }
+[data-theme="dark"] #pendingFilter:checked { background-color:#3c69b4 !important; }
+label[for="pendingFilter"] { cursor:pointer; padding-top:2px; }
+#additionalFiltersMenu {
+  width:320px; max-width:calc(100vw - 40px);
+  background:color-mix(in srgb,var(--bg-card) 40%,transparent);
+  backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+  color:var(--text-main); border-color:var(--border-color);
+  box-shadow:0 12px 32px rgba(0,0,0,.2);
+}
+#additionalFiltersButton .bi-chevron-down { display:inline-block; transition:transform .15s ease; }
+#additionalFiltersButton[aria-expanded="true"] .bi-chevron-down { transform:rotate(180deg); }
+
+</style>
+<style id="order-list-refinements">
+/* Keep familiar positions while reducing visual competition in the order list. */
+#orderTable .department-badge {
+  background-color:#f3f5f8 !important;
+  color:#334155 !important;
+  border-color:#dce2ea !important;
+}
+[data-theme="dark"] #orderTable .department-badge {
+  background-color:#303640 !important;
+  color:#e2e8f0 !important;
+  border-color:#505966 !important;
+}
+#orderTable thead th.sortable { white-space:nowrap; }
+#orderTable thead th.sortable i { display:inline-block; vertical-align:baseline; }
+@media (min-width:1400px) {
+  /* Recover a few pixels per column without shrinking text or action targets. */
+  #orderTable > :not(caption) > * > * {
+    padding-left:.4rem !important;
+    padding-right:.4rem !important;
+  }
+}
+.budget-figures { font-variant-numeric:tabular-nums; }
+.budget-figures #valRemaining { font-size:1.05em; }
+#budgetOverdrawn { display:inline-block; margin-left:.4rem; color:#a62b3b; font-size:.78rem; font-weight:600; }
+[data-theme="dark"] #budgetOverdrawn { color:#ffacb7; }
+#budgetOverdrawn[hidden] { display:none; }
+#additionalFiltersButton.has-active-filters { border-color:var(--polish-blue); color:var(--polish-blue); background-color:rgba(100,125,190,.10); }
+#orderTable .order-cost-column { text-align:right; font-variant-numeric:tabular-nums; }
+#orderTable .btn-action-icon, #orderTable .btn-note { position:relative; border-radius:4px; }
+/* Expand into the existing gaps without moving neighbouring actions. */
+#orderTable .btn-action-icon::before, #orderTable .btn-note::before { content:""; position:absolute; inset:-2px; }
+#orderTable .btn-action-icon:hover, #orderTable .btn-note:hover,
+#orderTable .btn-action-icon:focus-visible, #orderTable .btn-note:focus-visible { background-color:rgba(110,130,160,.18); outline:2px solid var(--contrast-control); outline-offset:0; }
+.portal-entry-card label { display:block; margin-bottom:.35rem; font-size:.875rem; font-weight:600; color:var(--text-muted); }
+.portal-entry-card .form-text { margin-top:.35rem; font-size:.8rem; }
+.portal-entry-card input[readonly] { background-color:#edf0f5 !important; color:#465369 !important; border-style:dashed; }
+[data-theme="dark"] .portal-entry-card input[readonly] { background-color:#292f38 !important; color:#d1d9e5 !important; }
+.portal-entry-card .invalid-feedback { color:#a62b3b; }
+[data-theme="dark"] .portal-entry-card .invalid-feedback { color:#ffacb7; }
+@media (min-width:768px) {
+  .budget-figures { --bs-gutter-x:1.5rem; }
+}
+</style>
+<style id="order-column-spacing">
+@media (min-width:769px) {
+  /* Fill the card, with spare width shared by the descriptive identity columns. */
+  #orderTable { width:100%; table-layout:auto; }
+  #orderTable > :not(caption) > * > * { padding-left:8px !important; padding-right:8px !important; }
+  #orderTable .order-status-column, #orderTable .order-status-cell,
+  #orderTable .order-actions-column { width:1%; }
+  #orderTable th:first-child, #orderTable td[data-label="Select"],
+  #orderTable th:nth-child(2), #orderTable td[data-label="Date"],
+  #orderTable th:nth-child(4), #orderTable td[data-label="GL Code"],
+  #orderTable th:nth-child(7), #orderTable td[data-label="Qty"] { width:1%; }
+  #orderTable th:nth-child(6), #orderTable td[data-label="Description"] { width:276px; }
+  #orderTable .order-cost-column { width:auto; min-width:90px; }
+  #orderTable td[data-label="Date"], #orderTable td[data-label="GL Code"],
+  #orderTable td[data-label="Qty"] { white-space:nowrap; }
+  #orderTable .column-readable { display:inline-block; max-width:160px; white-space:normal; overflow-wrap:break-word; vertical-align:middle; }
+  #orderTable .department-badge.column-readable { width:max-content; }
+  #orderTable td[data-label="Requester"] .column-readable { max-width:140px; }
+  #orderTable td[data-label="Location"] .column-readable { max-width:140px; }
+}
+@media (min-width:769px) and (max-width:1399px) {
+  #orderTable > :not(caption) > * > * { padding-left:6px !important; padding-right:6px !important; }
+  #orderTable th:nth-child(6), #orderTable td[data-label="Description"] { width:232px; }
+}
+</style>
+<style id="portal-translucent-dropdowns">
+/* Only the popup surface is translucent; labels and selection indicators stay opaque. */
+:root { --dropdown-surface:#fff; --dropdown-text:#202534; }
+[data-theme="dark"], html.dark { --dropdown-surface:#1e1e1e; --dropdown-text:#f5f7fb; }
+.dropdown-menu, #settings-menu {
+  background:color-mix(in srgb,var(--dropdown-surface) 40%,transparent) !important;
+  backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+  color:var(--dropdown-text);
+  border:1px solid var(--polish-line); border-radius:8px;
+  box-shadow:0 12px 32px rgba(0,0,0,.2) !important;
+}
+.dropdown-menu .dropdown-item, .dropdown-menu .dropdown-header { color:var(--dropdown-text); }
+.dropdown-menu .dropdown-item:hover, .dropdown-menu .dropdown-item:focus {
+  background:var(--polish-soft); color:var(--dropdown-text);
+}
+#orderActionsMenu { position:fixed; z-index:1060; min-width:210px; max-width:calc(100vw - 16px); overflow-y:auto; padding:6px; }
+#orderActionsMenu .dropdown-item { display:flex; align-items:center; gap:10px; border-radius:5px; padding:9px 12px; }
+#orderActionsMenu .order-menu-cancel { color:#b02a37; }
+[data-theme="dark"] #orderActionsMenu .order-menu-cancel { color:#ffacb7; }
+.order-actions-toggle { position:relative; }
+/* Keep native selects as the fallback in browsers without customizable pickers. */
+@supports (appearance:base-select) {
+  select:not([multiple]):not([size]), select:not([multiple]):not([size])::picker(select) { appearance:base-select; }
+  select:not([multiple]):not([size]) { align-items:center; }
+  select:not([multiple]):not([size])::picker-icon { display:none; }
+  select:not([multiple]):not([size])::picker(select) {
+    background:color-mix(in srgb,var(--dropdown-surface) 40%,transparent);
+    backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+    color:var(--dropdown-text); border:1px solid var(--polish-line);
+    border-radius:8px; padding:5px; margin-block:4px;
+    box-shadow:0 12px 32px rgba(0,0,0,.2);
+    max-height:min(420px,60vh); overflow-y:auto;
+    min-width:anchor-size(width); max-width:calc(100vw - 24px);
+  }
+  select:not([multiple]):not([size]) option {
+    background:transparent; color:var(--dropdown-text);
+    padding:6px 10px; border-radius:4px; white-space:normal;
+  }
+  select:not([multiple]):not([size]) option:checked {
+    background:var(--polish-soft); font-weight:700;
+  }
+  select:not([multiple]):not([size]) option:hover,
+  select:not([multiple]):not([size]) option:focus {
+    background:#283583; color:#fff;
+  }
+  select:not([multiple]):not([size]) option:disabled { color:var(--polish-muted); }
+}
+@media (forced-colors:active) {
+  .dropdown-menu, #settings-menu { background:Canvas !important; color:CanvasText; backdrop-filter:none; }
+  select::picker(select) { background:Canvas !important; color:CanvasText; backdrop-filter:none !important; }
+}
+</style></head><body><div class="container-fluid portal-width" style="padding:24px"><div class="table-responsive"><table class="table table-hover align-middle mb-0" id="orderTable">
+                        <thead class="bg-light text-uppercase small fw-bold" style="color:var(--brand-blue)">
+                           <tr>
+                              <th class="ps-3" style="width:30px" id="headerCheckboxCell">
+                                 <input type="checkbox" class="form-check-input" id="selectAllBox" onclick="toggleSelectAll()">
+                              </th>
+                              <th class="sortable" onclick="sortBy('dateReq')">Date <i id="sortIcon_dateReq" class="bi bi-arrow-down text-primary fw-bold"></i></th>
+                              <th class="sortable" onclick="sortBy('dept')">Dept <i id="sortIcon_dept" class="bi bi-arrow-down-up small text-muted"></i></th>
+                              <th class="sortable" onclick="sortBy('glCode')">GL Code <i id="sortIcon_glCode" class="bi bi-arrow-down-up small text-muted"></i></th>
+                              <th class="sortable" onclick="sortBy('requester')">Requester <i id="sortIcon_requester" class="bi bi-arrow-down-up small text-muted"></i></th>
+                              <th class="sortable" onclick="sortBy('desc')">Description <i id="sortIcon_desc" class="bi bi-arrow-down-up small text-muted"></i></th>
+                              <th class="sortable" onclick="sortBy('qty')">Qty <i id="sortIcon_qty" class="bi bi-arrow-down-up small text-muted"></i></th>
+                              <th class="sortable" onclick="sortBy('supplier')">Supplier <i id="sortIcon_supplier" class="bi bi-arrow-down-up small text-muted"></i></th>
+                              <th class="sortable" onclick="sortBy('location')">Location <i id="sortIcon_location" class="bi bi-arrow-down-up small text-muted"></i></th>
+                              <th class="sortable order-cost-column" onclick="sortBy('totalPrice')">Cost <i id="sortIcon_totalPrice" class="bi bi-arrow-down-up small text-muted"></i></th>
+                              <th class="sortable order-status-column" onclick="sortBy('status')">Status <i id="sortIcon_status" class="bi bi-arrow-down-up small text-muted"></i></th>
+                              <th class="text-start order-actions-column">Actions</th>
+                           </tr>
+                        </thead>
+                        <tbody id="tableBody">
+          <tr class="">
+            <td class="ps-3 chk-cell" data-label="Select"></td>
+            <td data-label="Date">28/09/2026</td>
+            <td data-label="Dept"><span class="badge bg-white text-dark border department-badge column-readable">Computing &amp; IT - Hardware</span></td>
+             <td data-label="GL Code">SCI-DEV</td>
+             <td data-label="Requester"><small class="column-readable">andy.clifton</small></td>
+             <td data-label="Description"><span class="description-truncate" data-tooltip-text="CANCELLED - DETAILS-CANCEL-20260928 verification only" tabindex="0">CANCELLED - DETAILS-CANCEL-20260928 verification only</span></td>
+             <td data-label="Qty">1</td>
+             <td data-label="Supplier"><span class="supplier-truncate" data-tooltip-text="Synthetic Dev Supplier" tabindex="0">Synthetic Dev Supplier</span></td>
+            <td data-label="Location"><span class="column-readable">Senior</span></td>
+            <td data-label="Cost" class="order-cost-column"><span class="cost-difference-value" data-tooltip-original="1" tabindex="0">£0.00</span></td>
+            <td data-label="Status" class="order-status-cell"><span class="order-status-line" aria-label="Cancelled"><span class="badge bg-secondary">Cancelled</span></span></td>
+            <td data-label="Actions" class="order-actions-column"><div class="action-cell"><button type="button" class="btn-note has-notes" title="View order notes" aria-label="View order notes (has notes)" onclick="openNotes(decodeURIComponent('DEV-26090700011'))"><i class="bi bi-envelope-fill" aria-hidden="true"></i></button><button type="button" class="btn btn-sm text-secondary btn-action-icon" title="View order details" aria-label="View order details" onclick="openDetails(decodeURIComponent('DEV-26090700011'))"><i class="bi bi-eye-fill" aria-hidden="true"></i></button><button type="button" class="btn btn-sm text-secondary btn-action-icon order-actions-toggle" title="Order actions" aria-label="Order actions" aria-haspopup="menu" aria-expanded="false" aria-controls="orderActionsMenu" onclick="toggleOrderActionsMenu_(this)"><i class="bi bi-three-dots-vertical" aria-hidden="true"></i></button><template><button type="button" role="menuitem" class="dropdown-item" onclick="closeOrderActionsMenu_(false); duplicateOrder(decodeURIComponent('DEV-26090700011'))"><i class="bi bi-arrow-repeat" aria-hidden="true"></i>Duplicate order</button></template></div></td>
+          </tr>
+          <tr class="bg-light">
+            <td class="ps-3 chk-cell" data-label="Select"></td>
+            <td data-label="Date">18/09/2026</td>
+            <td data-label="Dept"><span class="badge bg-white text-dark border department-badge column-readable">Computing &amp; IT - Hardware</span></td>
+             <td data-label="GL Code">SCI-DEV</td>
+             <td data-label="Requester"><small class="column-readable">andy.clifton</small></td>
+             <td data-label="Description"><span class="description-truncate">REL-RECOVERY-20260918 invoice verification only</span></td>
+             <td data-label="Qty">1</td>
+             <td data-label="Supplier"><span class="supplier-truncate" data-tooltip-text="REL-RECOVERY-20260918 Test Supplier" tabindex="0">REL-RECOVERY-20260918 Test Supplier</span></td>
+            <td data-label="Location"><span class="column-readable">Finance</span></td>
+            <td data-label="Cost" class="order-cost-column"><span class="cost-difference-value" data-tooltip-original="0.01" tabindex="0">£0.00</span></td>
+            <td data-label="Status" class="order-status-cell"><span class="order-status-line" aria-label="Processed"><span class="badge badge-processed">Processed</span></span></td>
+            <td data-label="Actions" class="order-actions-column"><div class="action-cell"><button type="button" class="btn-note has-notes" title="View order notes" aria-label="View order notes (has notes)" onclick="openNotes(decodeURIComponent('DEV-26090700010'))"><i class="bi bi-envelope-fill" aria-hidden="true"></i></button><button type="button" class="btn btn-sm text-secondary btn-action-icon" title="View order details" aria-label="View order details" onclick="openDetails(decodeURIComponent('DEV-26090700010'))"><i class="bi bi-eye-fill" aria-hidden="true"></i></button><button type="button" class="btn btn-sm text-secondary btn-action-icon order-actions-toggle" title="Order actions" aria-label="Order actions" aria-haspopup="menu" aria-expanded="false" aria-controls="orderActionsMenu" onclick="toggleOrderActionsMenu_(this)"><i class="bi bi-three-dots-vertical" aria-hidden="true"></i></button><template><button type="button" role="menuitem" class="dropdown-item" onclick="closeOrderActionsMenu_(false); duplicateOrder(decodeURIComponent('DEV-26090700010'))"><i class="bi bi-arrow-repeat" aria-hidden="true"></i>Duplicate order</button></template></div></td>
+          </tr>
+          <tr class="">
+            <td class="ps-3 chk-cell" data-label="Select"></td>
+            <td data-label="Date">18/09/2026</td>
+            <td data-label="Dept"><span class="badge bg-white text-dark border department-badge column-readable">Computing &amp; IT - Hardware</span></td>
+             <td data-label="GL Code">SCI-DEV</td>
+             <td data-label="Requester"><small class="column-readable">andy.clifton</small></td>
+             <td data-label="Description"><span class="description-truncate" data-tooltip-text="CANCELLED - REL-RECOVERY-20260918 order verification only" tabindex="0">CANCELLED - REL-RECOVERY-20260918 order verification only</span></td>
+             <td data-label="Qty">1</td>
+             <td data-label="Supplier"><span class="supplier-truncate" data-tooltip-text="REL-RECOVERY-20260918 Test Supplier" tabindex="0">REL-RECOVERY-20260918 Test Supplier</span></td>
+            <td data-label="Location"><span class="column-readable">Senior</span></td>
+            <td data-label="Cost" class="order-cost-column"><span class="cost-difference-value" data-tooltip-original="0.01" tabindex="0">£0.00</span></td>
+            <td data-label="Status" class="order-status-cell"><span class="order-status-line" aria-label="Cancelled"><span class="badge bg-secondary">Cancelled</span></span></td>
+            <td data-label="Actions" class="order-actions-column"><div class="action-cell"><button type="button" class="btn-note has-notes" title="View order notes" aria-label="View order notes (has notes)" onclick="openNotes(decodeURIComponent('DEV-26090700009'))"><i class="bi bi-envelope-fill" aria-hidden="true"></i></button><button type="button" class="btn btn-sm text-secondary btn-action-icon" title="View order details" aria-label="View order details" onclick="openDetails(decodeURIComponent('DEV-26090700009'))"><i class="bi bi-eye-fill" aria-hidden="true"></i></button><button type="button" class="btn btn-sm text-secondary btn-action-icon order-actions-toggle" title="Order actions" aria-label="Order actions" aria-haspopup="menu" aria-expanded="false" aria-controls="orderActionsMenu" onclick="toggleOrderActionsMenu_(this)"><i class="bi bi-three-dots-vertical" aria-hidden="true"></i></button><template><button type="button" role="menuitem" class="dropdown-item" onclick="closeOrderActionsMenu_(false); duplicateOrder(decodeURIComponent('DEV-26090700009'))"><i class="bi bi-arrow-repeat" aria-hidden="true"></i>Duplicate order</button></template></div></td>
+          </tr>
+          <tr class="bg-light">
+            <td class="ps-3 chk-cell" data-label="Select"></td>
+            <td data-label="Date">18/09/2026</td>
+            <td data-label="Dept"><span class="badge bg-white text-dark border department-badge column-readable">Computing &amp; IT - Hardware</span></td>
+             <td data-label="GL Code">SCI-DEV</td>
+             <td data-label="Requester"><small class="column-readable">andy.clifton</small></td>
+             <td data-label="Description"><span class="description-truncate">REL-DEV-20260918 — invoice verification only</span></td>
+             <td data-label="Qty">1</td>
+             <td data-label="Supplier"><span class="supplier-truncate" data-tooltip-text="REL-DEV-20260918 Supplier" tabindex="0">REL-DEV-20260918 Supplier</span></td>
+            <td data-label="Location"><span class="column-readable">Finance</span></td>
+            <td data-label="Cost" class="order-cost-column"><span class="cost-difference-value" data-tooltip-original="0.01" tabindex="0">£0.00</span></td>
+            <td data-label="Status" class="order-status-cell"><span class="order-status-line" aria-label="Processed"><span class="badge badge-processed">Processed</span></span></td>
+            <td data-label="Actions" class="order-actions-column"><div class="action-cell"><button type="button" class="btn-note has-notes" title="View order notes" aria-label="View order notes (has notes)" onclick="openNotes(decodeURIComponent('DEV-26090700008'))"><i class="bi bi-envelope-fill" aria-hidden="true"></i></button><button type="button" class="btn btn-sm text-secondary btn-action-icon" title="View order details" aria-label="View order details" onclick="openDetails(decodeURIComponent('DEV-26090700008'))"><i class="bi bi-eye-fill" aria-hidden="true"></i></button><button type="button" class="btn btn-sm text-secondary btn-action-icon order-actions-toggle" title="Order actions" aria-label="Order actions" aria-haspopup="menu" aria-expanded="false" aria-controls="orderActionsMenu" onclick="toggleOrderActionsMenu_(this)"><i class="bi bi-three-dots-vertical" aria-hidden="true"></i></button><template><button type="button" role="menuitem" class="dropdown-item" onclick="closeOrderActionsMenu_(false); duplicateOrder(decodeURIComponent('DEV-26090700008'))"><i class="bi bi-arrow-repeat" aria-hidden="true"></i>Duplicate order</button></template></div></td>
+          </tr>
+          <tr class="row-transfer">
+            <td class="ps-3 chk-cell" data-label="Select"></td>
+            <td data-label="Date">18/09/2026</td>
+            <td data-label="Dept"><span class="badge bg-white text-dark border department-badge column-readable">Computing &amp; IT - Hardware</span></td>
+             <td data-label="GL Code">SCI-DEV</td>
+             <td data-label="Requester"><small class="column-readable">andy.clifton</small></td>
+             <td data-label="Description"><span class="description-truncate">Budget Transfer from English</span></td>
+             <td data-label="Qty">1</td>
+             <td data-label="Supplier"><span class="supplier-truncate">Budget Transfer</span></td>
+            <td data-label="Location"><span class="column-readable">Budget Transfer</span></td>
+            <td data-label="Cost" class="order-cost-column">-£0.01</td>
+            <td data-label="Status" class="order-status-cell"><span class="order-status-line" aria-label="Transfer · Applied"><span class="badge bg-danger" data-tooltip-text="Applied" tabindex="0">Transfer</span></span></td>
+            <td data-label="Actions" class="order-actions-column"><div class="action-cell"><button type="button" class="btn-note has-notes" title="View order notes" aria-label="View order notes (has notes)" onclick="openNotes(decodeURIComponent('DEV-26090700007'))"><i class="bi bi-envelope-fill" aria-hidden="true"></i></button><button type="button" class="btn btn-sm text-secondary btn-action-icon" title="View order details" aria-label="View order details" onclick="openDetails(decodeURIComponent('DEV-26090700007'))"><i class="bi bi-eye-fill" aria-hidden="true"></i></button></div></td>
+          </tr>
+          <tr class="row-transfer">
+            <td class="ps-3 chk-cell" data-label="Select"></td>
+            <td data-label="Date">18/09/2026</td>
+            <td data-label="Dept"><span class="badge bg-white text-dark border department-badge column-readable">Computing &amp; IT - Hardware</span></td>
+             <td data-label="GL Code">SCI-DEV</td>
+             <td data-label="Requester"><small class="column-readable">andy.clifton</small></td>
+             <td data-label="Description"><span class="description-truncate">Budget Transfer to English</span></td>
+             <td data-label="Qty">1</td>
+             <td data-label="Supplier"><span class="supplier-truncate">Budget Transfer</span></td>
+            <td data-label="Location"><span class="column-readable">Budget Transfer</span></td>
+            <td data-label="Cost" class="order-cost-column">£0.01</td>
+            <td data-label="Status" class="order-status-cell"><span class="order-status-line" aria-label="Transfer · Applied"><span class="badge bg-danger" data-tooltip-text="Applied" tabindex="0">Transfer</span></span></td>
+            <td data-label="Actions" class="order-actions-column"><div class="action-cell"><button type="button" class="btn-note has-notes" title="View order notes" aria-label="View order notes (has notes)" onclick="openNotes(decodeURIComponent('DEV-26090700004'))"><i class="bi bi-envelope-fill" aria-hidden="true"></i></button><button type="button" class="btn btn-sm text-secondary btn-action-icon" title="View order details" aria-label="View order details" onclick="openDetails(decodeURIComponent('DEV-26090700004'))"><i class="bi bi-eye-fill" aria-hidden="true"></i></button></div></td>
+          </tr>
+          <tr class="">
+            <td class="ps-3 chk-cell" data-label="Select"></td>
+            <td data-label="Date">18/09/2026</td>
+            <td data-label="Dept"><span class="badge bg-white text-dark border department-badge column-readable">Computing &amp; IT - Hardware</span></td>
+             <td data-label="GL Code">SCI-DEV</td>
+             <td data-label="Requester"><small class="column-readable">andy.clifton</small></td>
+             <td data-label="Description"><span class="description-truncate" data-tooltip-text="CANCELLED - REL-DEV-20260918 — edited verification" tabindex="0">CANCELLED - REL-DEV-20260918 — edited verification</span></td>
+             <td data-label="Qty">1</td>
+             <td data-label="Supplier"><span class="supplier-truncate">=1+1</span></td>
+            <td data-label="Location"><span class="column-readable">Senior</span></td>
+            <td data-label="Cost" class="order-cost-column"><span class="cost-difference-value" data-tooltip-original="1.23" tabindex="0">£0.00</span></td>
+            <td data-label="Status" class="order-status-cell"><span class="order-status-line" aria-label="Cancelled"><span class="badge bg-secondary">Cancelled</span></span></td>
+            <td data-label="Actions" class="order-actions-column"><div class="action-cell"><button type="button" class="btn-note has-notes" title="View order notes" aria-label="View order notes (has notes)" onclick="openNotes(decodeURIComponent('DEV-26090700003'))"><i class="bi bi-envelope-fill" aria-hidden="true"></i></button><button type="button" class="btn btn-sm text-secondary btn-action-icon" title="View order details" aria-label="View order details" onclick="openDetails(decodeURIComponent('DEV-26090700003'))"><i class="bi bi-eye-fill" aria-hidden="true"></i></button><button type="button" class="btn btn-sm text-secondary btn-action-icon order-actions-toggle" title="Order actions" aria-label="Order actions" aria-haspopup="menu" aria-expanded="false" aria-controls="orderActionsMenu" onclick="toggleOrderActionsMenu_(this)"><i class="bi bi-three-dots-vertical" aria-hidden="true"></i></button><template><button type="button" role="menuitem" class="dropdown-item" onclick="closeOrderActionsMenu_(false); duplicateOrder(decodeURIComponent('DEV-26090700003'))"><i class="bi bi-arrow-repeat" aria-hidden="true"></i>Duplicate order</button></template></div></td>
+          </tr>
+          <tr class="">
+            <td class="ps-3 chk-cell" data-label="Select"></td>
+            <td data-label="Date">15/09/2026</td>
+            <td data-label="Dept"><span class="badge bg-white text-dark border department-badge column-readable">Computing &amp; IT - Hardware</span></td>
+             <td data-label="GL Code">SCI-DEV</td>
+             <td data-label="Requester"><small class="column-readable">samuel.bodle</small></td>
+             <td data-label="Description"><span class="description-truncate" data-tooltip-text="CANCELLED - REQUESTER-DEV-20260915 — on behalf of Sam verification only" tabindex="0">CANCELLED - REQUESTER-DEV-20260915 — on behalf of Sam verification only</span></td>
+             <td data-label="Qty">1</td>
+             <td data-label="Supplier"><span class="supplier-truncate" data-tooltip-text="Synthetic Dev Supplier" tabindex="0">Synthetic Dev Supplier</span></td>
+            <td data-label="Location"><span class="column-readable">Senior</span></td>
+            <td data-label="Cost" class="order-cost-column"><span class="cost-difference-value" data-tooltip-original="0.01" tabindex="0">£0.00</span></td>
+            <td data-label="Status" class="order-status-cell"><span class="order-status-line" aria-label="Cancelled"><span class="badge bg-secondary">Cancelled</span></span></td>
+            <td data-label="Actions" class="order-actions-column"><div class="action-cell"><button type="button" class="btn-note has-notes" title="View order notes" aria-label="View order notes (has notes)" onclick="openNotes(decodeURIComponent('DEV-26090700002'))"><i class="bi bi-envelope-fill" aria-hidden="true"></i></button><button type="button" class="btn btn-sm text-secondary btn-action-icon" title="View order details" aria-label="View order details" onclick="openDetails(decodeURIComponent('DEV-26090700002'))"><i class="bi bi-eye-fill" aria-hidden="true"></i></button><button type="button" class="btn btn-sm text-secondary btn-action-icon order-actions-toggle" title="Order actions" aria-label="Order actions" aria-haspopup="menu" aria-expanded="false" aria-controls="orderActionsMenu" onclick="toggleOrderActionsMenu_(this)"><i class="bi bi-three-dots-vertical" aria-hidden="true"></i></button><template><button type="button" role="menuitem" class="dropdown-item" onclick="closeOrderActionsMenu_(false); duplicateOrder(decodeURIComponent('DEV-26090700002'))"><i class="bi bi-arrow-repeat" aria-hidden="true"></i>Duplicate order</button></template></div></td>
+          </tr>
+          <tr class="">
+            <td class="ps-3 chk-cell" data-label="Select"></td>
+            <td data-label="Date">07/09/2026</td>
+            <td data-label="Dept"><span class="badge bg-white text-dark border department-badge column-readable">Computing &amp; IT - Hardware</span></td>
+             <td data-label="GL Code">SCI-DEV</td>
+             <td data-label="Requester"><small class="column-readable">samuel.bodle</small></td>
+             <td data-label="Description"><span class="description-truncate" data-tooltip-text="CANCELLED - PERF-DEV-20260907 — performance verification only" tabindex="0">CANCELLED - PERF-DEV-20260907 — performance verification only</span></td>
+             <td data-label="Qty">1</td>
+             <td data-label="Supplier"><span class="supplier-truncate" data-tooltip-text="Synthetic Dev Supplier" tabindex="0">Synthetic Dev Supplier</span></td>
+            <td data-label="Location"><span class="column-readable">Senior</span></td>
+            <td data-label="Cost" class="order-cost-column"><span class="cost-difference-value" data-tooltip-original="1" tabindex="0">£0.00</span></td>
+            <td data-label="Status" class="order-status-cell"><span class="order-status-line" aria-label="Cancelled"><span class="badge bg-secondary">Cancelled</span></span></td>
+            <td data-label="Actions" class="order-actions-column"><div class="action-cell"><button type="button" class="btn-note has-notes" title="View order notes" aria-label="View order notes (has notes)" onclick="openNotes(decodeURIComponent('DEV-26090700001'))"><i class="bi bi-envelope-fill" aria-hidden="true"></i></button><button type="button" class="btn btn-sm text-secondary btn-action-icon" title="View order details" aria-label="View order details" onclick="openDetails(decodeURIComponent('DEV-26090700001'))"><i class="bi bi-eye-fill" aria-hidden="true"></i></button><button type="button" class="btn btn-sm text-secondary btn-action-icon order-actions-toggle" title="Order actions" aria-label="Order actions" aria-haspopup="menu" aria-expanded="false" aria-controls="orderActionsMenu" onclick="toggleOrderActionsMenu_(this)"><i class="bi bi-three-dots-vertical" aria-hidden="true"></i></button><template><button type="button" role="menuitem" class="dropdown-item" onclick="closeOrderActionsMenu_(false); duplicateOrder(decodeURIComponent('DEV-26090700001'))"><i class="bi bi-arrow-repeat" aria-hidden="true"></i>Duplicate order</button></template></div></td>
+          </tr>
+          <tr class="bg-light">
+            <td class="ps-3 chk-cell" data-label="Select"></td>
+            <td data-label="Date">03/09/2026</td>
+            <td data-label="Dept"><span class="badge bg-white text-dark border department-badge column-readable">Computing &amp; IT - Hardware</span></td>
+             <td data-label="GL Code">SCI-DEV</td>
+             <td data-label="Requester"><small class="column-readable">andy.clifton</small></td>
+             <td data-label="Description"><span class="description-truncate">DUPLICATE TEST - marker pens</span></td>
+             <td data-label="Qty">2</td>
+             <td data-label="Supplier"><span class="supplier-truncate">Test Supplier</span></td>
+            <td data-label="Location"><span class="column-readable">Prep</span></td>
+            <td data-label="Cost" class="order-cost-column">£47.24</td>
+            <td data-label="Status" class="order-status-cell"><span class="order-status-line" aria-label="Ordered"><span class="badge badge-ordered">Ordered</span></span></td>
+            <td data-label="Actions" class="order-actions-column"><div class="action-cell"><button type="button" class="btn-note " title="View order notes" aria-label="View order notes" onclick="openNotes(decodeURIComponent('DEV-DUP-20260914-R2'))"><i class="bi bi-envelope" aria-hidden="true"></i></button><button type="button" class="btn btn-sm text-secondary btn-action-icon" title="View order details" aria-label="View order details" onclick="openDetails(decodeURIComponent('DEV-DUP-20260914-R2'))"><i class="bi bi-eye-fill" aria-hidden="true"></i></button><button type="button" class="btn btn-sm text-secondary btn-action-icon order-actions-toggle" title="Order actions" aria-label="Order actions" aria-haspopup="menu" aria-expanded="false" aria-controls="orderActionsMenu" onclick="toggleOrderActionsMenu_(this)"><i class="bi bi-three-dots-vertical" aria-hidden="true"></i></button><template><button type="button" role="menuitem" class="dropdown-item" onclick="closeOrderActionsMenu_(false); openFinance(decodeURIComponent('DEV-DUP-20260914-R2'))"><i class="bi bi-sliders" aria-hidden="true"></i>Manage order</button><button type="button" role="menuitem" class="dropdown-item" onclick="closeOrderActionsMenu_(false); duplicateOrder(decodeURIComponent('DEV-DUP-20260914-R2'))"><i class="bi bi-arrow-repeat" aria-hidden="true"></i>Duplicate order</button></template></div></td>
+          </tr>
+          <tr class="bg-light">
+            <td class="ps-3 chk-cell" data-label="Select"></td>
+            <td data-label="Date">02/09/2026</td>
+            <td data-label="Dept"><span class="badge bg-white text-dark border department-badge column-readable">Computing &amp; IT - Hardware</span></td>
+             <td data-label="GL Code">SCI-DEV</td>
+             <td data-label="Requester"><small class="column-readable">samuel.bodle</small></td>
+             <td data-label="Description"><span class="description-truncate">Order Chat UAT - Final rotated webhook</span></td>
+             <td data-label="Qty">1</td>
+             <td data-label="Supplier"><span class="supplier-truncate" data-tooltip-text="Development Test Supplier" tabindex="0">Development Test Supplier</span></td>
+            <td data-label="Location"><span class="column-readable">Senior</span></td>
+            <td data-label="Cost" class="order-cost-column">£1.29</td>
+            <td data-label="Status" class="order-status-cell"><span class="order-status-line" aria-label="Ordered"><span class="badge badge-ordered">Ordered</span></span></td>
+            <td data-label="Actions" class="order-actions-column"><div class="action-cell"><button type="button" class="btn-note " title="View order notes" aria-label="View order notes" onclick="openNotes(decodeURIComponent('26041000128'))"><i class="bi bi-envelope" aria-hidden="true"></i></button><button type="button" class="btn btn-sm text-secondary btn-action-icon" title="View order details" aria-label="View order details" onclick="openDetails(decodeURIComponent('26041000128'))"><i class="bi bi-eye-fill" aria-hidden="true"></i></button><button type="button" class="btn btn-sm text-secondary btn-action-icon order-actions-toggle" title="Order actions" aria-label="Order actions" aria-haspopup="menu" aria-expanded="false" aria-controls="orderActionsMenu" onclick="toggleOrderActionsMenu_(this)"><i class="bi bi-three-dots-vertical" aria-hidden="true"></i></button><template><button type="button" role="menuitem" class="dropdown-item" onclick="closeOrderActionsMenu_(false); openFinance(decodeURIComponent('26041000128'))"><i class="bi bi-sliders" aria-hidden="true"></i>Manage order</button><button type="button" role="menuitem" class="dropdown-item" onclick="closeOrderActionsMenu_(false); duplicateOrder(decodeURIComponent('26041000128'))"><i class="bi bi-arrow-repeat" aria-hidden="true"></i>Duplicate order</button></template></div></td>
+          </tr>
+          <tr class="row-pending">
+            <td class="ps-3 chk-cell" data-label="Select"><input type="checkbox" class="form-check-input" value="26041000137" onchange="toggleRow(this)"></td>
+            <td data-label="Date">02/09/2026</td>
+            <td data-label="Dept"><span class="badge bg-white text-dark border department-badge column-readable">Computing &amp; IT - Hardware</span></td>
+             <td data-label="GL Code">SCI-DEV</td>
+             <td data-label="Requester"><small class="column-readable">samuel.bodle</small></td>
+             <td data-label="Description"><span class="description-truncate">Order Chat UAT - Working webhook (edited)</span></td>
+             <td data-label="Qty">1</td>
+             <td data-label="Supplier"><span class="supplier-truncate" data-tooltip-text="Development Test Supplier" tabindex="0">Development Test Supplier</span></td>
+            <td data-label="Location"><span class="column-readable">Senior</span></td>
+            <td data-label="Cost" class="order-cost-column">£1.27</td>
+            <td data-label="Status" class="order-status-cell"><span class="order-status-line" aria-label="Pending"><span class="badge badge-pending">Pending</span></span></td>
+            <td data-label="Actions" class="order-actions-column"><div class="action-cell"><button type="button" class="btn-note " title="View order notes" aria-label="View order notes" onclick="openNotes(decodeURIComponent('26041000137'))"><i class="bi bi-envelope" aria-hidden="true"></i></button><button type="button" class="btn btn-sm text-secondary btn-action-icon" title="View order details" aria-label="View order details" onclick="openDetails(decodeURIComponent('26041000137'))"><i class="bi bi-eye-fill" aria-hidden="true"></i></button><button type="button" class="btn btn-sm text-secondary btn-action-icon order-actions-toggle" title="Order actions" aria-label="Order actions" aria-haspopup="menu" aria-expanded="false" aria-controls="orderActionsMenu" onclick="toggleOrderActionsMenu_(this)"><i class="bi bi-three-dots-vertical" aria-hidden="true"></i></button><template><button type="button" role="menuitem" class="dropdown-item" onclick="closeOrderActionsMenu_(false); openFinance(decodeURIComponent('26041000137'))"><i class="bi bi-sliders" aria-hidden="true"></i>Manage order</button><button type="button" role="menuitem" class="dropdown-item" onclick="closeOrderActionsMenu_(false); editOrder(decodeURIComponent('26041000137'))"><i class="bi bi-pencil-fill" aria-hidden="true"></i>Edit order</button><button type="button" role="menuitem" class="dropdown-item" onclick="closeOrderActionsMenu_(false); duplicateOrder(decodeURIComponent('26041000137'))"><i class="bi bi-arrow-repeat" aria-hidden="true"></i>Duplicate order</button><hr class="dropdown-divider"><button type="button" role="menuitem" class="dropdown-item order-menu-cancel" onclick="closeOrderActionsMenu_(false); cancelOrder(decodeURIComponent('26041000137'))"><i class="bi bi-trash-fill" aria-hidden="true"></i>Cancel order</button></template></div></td>
+          </tr>
+          <tr class="row-pending">
+            <td class="ps-3 chk-cell" data-label="Select"><input type="checkbox" class="form-check-input" value="26041000135" onchange="toggleRow(this)"></td>
+            <td data-label="Date">02/09/2026</td>
+            <td data-label="Dept"><span class="badge bg-white text-dark border department-badge column-readable">Computing &amp; IT - Hardware</span></td>
+             <td data-label="GL Code">SCI-DEV</td>
+             <td data-label="Requester"><small class="column-readable">samuel.bodle</small></td>
+             <td data-label="Description"><span class="description-truncate">Order Chat UAT - Samuel final (edited)</span></td>
+             <td data-label="Qty">1</td>
+             <td data-label="Supplier"><span class="supplier-truncate" data-tooltip-text="Development Test Supplier" tabindex="0">Development Test Supplier</span></td>
+            <td data-label="Location"><span class="column-readable">Senior</span></td>
+            <td data-label="Cost" class="order-cost-column">£1.25</td>
+            <td data-label="Status" class="order-status-cell"><span class="order-status-line" aria-label="Pending"><span class="badge badge-pending">Pending</span></span></td>
+            <td data-label="Actions" class="order-actions-column"><div class="action-cell"><button type="button" class="btn-note " title="View order notes" aria-label="View order notes" onclick="openNotes(decodeURIComponent('26041000135'))"><i class="bi bi-envelope" aria-hidden="true"></i></button><button type="button" class="btn btn-sm text-secondary btn-action-icon" title="View order details" aria-label="View order details" onclick="openDetails(decodeURIComponent('26041000135'))"><i class="bi bi-eye-fill" aria-hidden="true"></i></button><button type="button" class="btn btn-sm text-secondary btn-action-icon order-actions-toggle" title="Order actions" aria-label="Order actions" aria-haspopup="menu" aria-expanded="false" aria-controls="orderActionsMenu" onclick="toggleOrderActionsMenu_(this)"><i class="bi bi-three-dots-vertical" aria-hidden="true"></i></button><template><button type="button" role="menuitem" class="dropdown-item" onclick="closeOrderActionsMenu_(false); openFinance(decodeURIComponent('26041000135'))"><i class="bi bi-sliders" aria-hidden="true"></i>Manage order</button><button type="button" role="menuitem" class="dropdown-item" onclick="closeOrderActionsMenu_(false); editOrder(decodeURIComponent('26041000135'))"><i class="bi bi-pencil-fill" aria-hidden="true"></i>Edit order</button><button type="button" role="menuitem" class="dropdown-item" onclick="closeOrderActionsMenu_(false); duplicateOrder(decodeURIComponent('26041000135'))"><i class="bi bi-arrow-repeat" aria-hidden="true"></i>Duplicate order</button><hr class="dropdown-divider"><button type="button" role="menuitem" class="dropdown-item order-menu-cancel" onclick="closeOrderActionsMenu_(false); cancelOrder(decodeURIComponent('26041000135'))"><i class="bi bi-trash-fill" aria-hidden="true"></i>Cancel order</button></template></div></td>
+          </tr>
+          <tr class="row-pending">
+            <td class="ps-3 chk-cell" data-label="Select"><input type="checkbox" class="form-check-input" value="26041000134" onchange="toggleRow(this)"></td>
+            <td data-label="Date">02/09/2026</td>
+            <td data-label="Dept"><span class="badge bg-white text-dark border department-badge column-readable">Computing &amp; IT - Hardware</span></td>
+             <td data-label="GL Code">SCI-DEV</td>
+             <td data-label="Requester"><small class="column-readable">samuel.bodle</small></td>
+             <td data-label="Description"><span class="description-truncate">Order Chat UAT - Samuel authorised</span></td>
+             <td data-label="Qty">1</td>
+             <td data-label="Supplier"><span class="supplier-truncate" data-tooltip-text="Development Test Supplier" tabindex="0">Development Test Supplier</span></td>
+            <td data-label="Location"><span class="column-readable">Senior</span></td>
+            <td data-label="Cost" class="order-cost-column">£1.24</td>
+            <td data-label="Status" class="order-status-cell"><span class="order-status-line" aria-label="Pending"><span class="badge badge-pending">Pending</span></span></td>
+            <td data-label="Actions" class="order-actions-column"><div class="action-cell"><button type="button" class="btn-note " title="View order notes" aria-label="View order notes" onclick="openNotes(decodeURIComponent('26041000134'))"><i class="bi bi-envelope" aria-hidden="true"></i></button><button type="button" class="btn btn-sm text-secondary btn-action-icon" title="View order details" aria-label="View order details" onclick="openDetails(decodeURIComponent('26041000134'))"><i class="bi bi-eye-fill" aria-hidden="true"></i></button><button type="button" class="btn btn-sm text-secondary btn-action-icon order-actions-toggle" title="Order actions" aria-label="Order actions" aria-haspopup="menu" aria-expanded="false" aria-controls="orderActionsMenu" onclick="toggleOrderActionsMenu_(this)"><i class="bi bi-three-dots-vertical" aria-hidden="true"></i></button><template><button type="button" role="menuitem" class="dropdown-item" onclick="closeOrderActionsMenu_(false); openFinance(decodeURIComponent('26041000134'))"><i class="bi bi-sliders" aria-hidden="true"></i>Manage order</button><button type="button" role="menuitem" class="dropdown-item" onclick="closeOrderActionsMenu_(false); editOrder(decodeURIComponent('26041000134'))"><i class="bi bi-pencil-fill" aria-hidden="true"></i>Edit order</button><button type="button" role="menuitem" class="dropdown-item" onclick="closeOrderActionsMenu_(false); duplicateOrder(decodeURIComponent('26041000134'))"><i class="bi bi-arrow-repeat" aria-hidden="true"></i>Duplicate order</button><hr class="dropdown-divider"><button type="button" role="menuitem" class="dropdown-item order-menu-cancel" onclick="closeOrderActionsMenu_(false); cancelOrder(decodeURIComponent('26041000134'))"><i class="bi bi-trash-fill" aria-hidden="true"></i>Cancel order</button></template></div></td>
+          </tr>
+          <tr class="row-pending">
+            <td class="ps-3 chk-cell" data-label="Select"><input type="checkbox" class="form-check-input" value="26041000133" onchange="toggleRow(this)"></td>
+            <td data-label="Date">02/09/2026</td>
+            <td data-label="Dept"><span class="badge bg-white text-dark border department-badge column-readable">Computing &amp; IT - Hardware</span></td>
+             <td data-label="GL Code">SCI-DEV</td>
+             <td data-label="Requester"><small class="column-readable">samuel.bodle</small></td>
+             <td data-label="Description"><span class="description-truncate">Order Chat UAT - Samuel</span></td>
+             <td data-label="Qty">1</td>
+             <td data-label="Supplier"><span class="supplier-truncate" data-tooltip-text="Development Test Supplier" tabindex="0">Development Test Supplier</span></td>
+            <td data-label="Location"><span class="column-readable">Senior</span></td>
+            <td data-label="Cost" class="order-cost-column">£1.23</td>
+            <td data-label="Status" class="order-status-cell"><span class="order-status-line" aria-label="Pending"><span class="badge badge-pending">Pending</span></span></td>
+            <td data-label="Actions" class="order-actions-column"><div class="action-cell"><button type="button" class="btn-note " title="View order notes" aria-label="View order notes" onclick="openNotes(decodeURIComponent('26041000133'))"><i class="bi bi-envelope" aria-hidden="true"></i></button><button type="button" class="btn btn-sm text-secondary btn-action-icon" title="View order details" aria-label="View order details" onclick="openDetails(decodeURIComponent('26041000133'))"><i class="bi bi-eye-fill" aria-hidden="true"></i></button><button type="button" class="btn btn-sm text-secondary btn-action-icon order-actions-toggle" title="Order actions" aria-label="Order actions" aria-haspopup="menu" aria-expanded="false" aria-controls="orderActionsMenu" onclick="toggleOrderActionsMenu_(this)"><i class="bi bi-three-dots-vertical" aria-hidden="true"></i></button><template><button type="button" role="menuitem" class="dropdown-item" onclick="closeOrderActionsMenu_(false); openFinance(decodeURIComponent('26041000133'))"><i class="bi bi-sliders" aria-hidden="true"></i>Manage order</button><button type="button" role="menuitem" class="dropdown-item" onclick="closeOrderActionsMenu_(false); editOrder(decodeURIComponent('26041000133'))"><i class="bi bi-pencil-fill" aria-hidden="true"></i>Edit order</button><button type="button" role="menuitem" class="dropdown-item" onclick="closeOrderActionsMenu_(false); duplicateOrder(decodeURIComponent('26041000133'))"><i class="bi bi-arrow-repeat" aria-hidden="true"></i>Duplicate order</button><hr class="dropdown-divider"><button type="button" role="menuitem" class="dropdown-item order-menu-cancel" onclick="closeOrderActionsMenu_(false); cancelOrder(decodeURIComponent('26041000133'))"><i class="bi bi-trash-fill" aria-hidden="true"></i>Cancel order</button></template></div></td>
+          </tr>
+          <tr class="bg-light row-pending">
+            <td class="ps-3 chk-cell" data-label="Select"></td>
+            <td data-label="Date">01/09/2026</td>
+            <td data-label="Dept"><span class="badge bg-white text-dark border department-badge column-readable">Computing &amp; IT - Hardware</span></td>
+             <td data-label="GL Code">SCI-DEV</td>
+             <td data-label="Requester"><small class="column-readable">processor.one</small></td>
+             <td data-label="Description"><span class="description-truncate">Synthetic completed self-purchase</span></td>
+             <td data-label="Qty">1</td>
+             <td data-label="Supplier"><span class="supplier-truncate">Test Supplier</span></td>
+            <td data-label="Location"><span class="column-readable">Senior</span></td>
+            <td data-label="Cost" class="order-cost-column">£15.00</td>
+            <td data-label="Status" class="order-status-cell"><span class="order-status-line" aria-label="Sign-off needed · ETA 1 Sep"><button class="badge text-bg-warning order-status-action" type="button" onclick="openApprovalReview(decodeURIComponent('DEV-1003'))" data-tooltip-text="ETA 1 Sep" tabindex="0">Sign-off needed</button></span></td>
+            <td data-label="Actions" class="order-actions-column"><div class="action-cell"><button type="button" class="btn-note " title="View order notes" aria-label="View order notes" onclick="openNotes(decodeURIComponent('DEV-1003'))"><i class="bi bi-envelope" aria-hidden="true"></i></button><button type="button" class="btn btn-sm text-secondary btn-action-icon" title="View order details" aria-label="View order details" onclick="openDetails(decodeURIComponent('DEV-1003'))"><i class="bi bi-eye-fill" aria-hidden="true"></i></button><button type="button" class="btn btn-sm text-secondary btn-action-icon order-actions-toggle" title="Order actions" aria-label="Order actions" aria-haspopup="menu" aria-expanded="false" aria-controls="orderActionsMenu" onclick="toggleOrderActionsMenu_(this)"><i class="bi bi-three-dots-vertical" aria-hidden="true"></i></button><template><button type="button" role="menuitem" class="dropdown-item" onclick="closeOrderActionsMenu_(false); openFinance(decodeURIComponent('DEV-1003'))"><i class="bi bi-sliders" aria-hidden="true"></i>Manage order</button><button type="button" role="menuitem" class="dropdown-item" onclick="closeOrderActionsMenu_(false); duplicateOrder(decodeURIComponent('DEV-1003'))"><i class="bi bi-arrow-repeat" aria-hidden="true"></i>Duplicate order</button></template></div></td>
+          </tr>
+          <tr class="bg-light">
+            <td class="ps-3 chk-cell" data-label="Select"></td>
+            <td data-label="Date">01/09/2026</td>
+            <td data-label="Dept"><span class="badge bg-white text-dark border department-badge column-readable">Computing &amp; IT - Hardware</span></td>
+             <td data-label="GL Code">SCI-DEV</td>
+             <td data-label="Requester"><small class="column-readable">processor.one</small></td>
+             <td data-label="Description"><span class="description-truncate">Synthetic science supplies</span></td>
+             <td data-label="Qty">2</td>
+             <td data-label="Supplier"><span class="supplier-truncate"><a href="https://example.com/item" target="_blank" rel="noopener" class="text-decoration-none fw-bold" style="color:var(--link-blue)">Test Supplier <i class="bi bi-box-arrow-up-right" style="font-size:0.75rem"></i></a></span></td>
+            <td data-label="Location"><span class="column-readable">Senior</span></td>
+            <td data-label="Cost" class="order-cost-column">£25.00</td>
+            <td data-label="Status" class="order-status-cell"><span class="order-status-line" aria-label="Ordered"><span class="badge badge-ordered">Ordered</span></span></td>
+            <td data-label="Actions" class="order-actions-column"><div class="action-cell"><button type="button" class="btn-note " title="View order notes" aria-label="View order notes" onclick="openNotes(decodeURIComponent('DEV-1001'))"><i class="bi bi-envelope" aria-hidden="true"></i></button><button type="button" class="btn btn-sm text-secondary btn-action-icon" title="View order details" aria-label="View order details" onclick="openDetails(decodeURIComponent('DEV-1001'))"><i class="bi bi-eye-fill" aria-hidden="true"></i></button><button type="button" class="btn btn-sm text-secondary btn-action-icon order-actions-toggle" title="Order actions" aria-label="Order actions" aria-haspopup="menu" aria-expanded="false" aria-controls="orderActionsMenu" onclick="toggleOrderActionsMenu_(this)"><i class="bi bi-three-dots-vertical" aria-hidden="true"></i></button><template><button type="button" role="menuitem" class="dropdown-item" onclick="closeOrderActionsMenu_(false); openFinance(decodeURIComponent('DEV-1001'))"><i class="bi bi-sliders" aria-hidden="true"></i>Manage order</button><button type="button" role="menuitem" class="dropdown-item" onclick="closeOrderActionsMenu_(false); duplicateOrder(decodeURIComponent('DEV-1001'))"><i class="bi bi-arrow-repeat" aria-hidden="true"></i>Duplicate order</button></template></div></td>
+          </tr></tbody>
+                     </table></div></div></body></html>

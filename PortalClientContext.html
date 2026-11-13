@@ -1,0 +1,49 @@
+<script>
+/* A preview belongs to this browser tab, never to the user's account. */
+var portalViewContext = (function () {
+  var key = 'orders.portal.viewContext';
+  var invalid = {mode:'invalid',email:''};
+  var loaded = false;
+  var current = null;
+  return {
+    get: function () {
+      if (loaded) return current;
+      loaded = true;
+      try {
+        var stored = sessionStorage.getItem(key);
+        if (stored === null) return current;
+        var value = JSON.parse(stored);
+        current = value && ['preview','test'].includes(value.mode) && typeof value.email === 'string' && value.email.trim()
+          ? {mode:value.mode,email:value.email} : invalid;
+      } catch (_) { current = invalid; }
+      return current;
+    },
+    set: function (value) {
+      try {
+        if (value) sessionStorage.setItem(key, JSON.stringify(value));
+        else sessionStorage.removeItem(key);
+      } catch (_) {
+        throw new Error('This browser could not update the account view. Allow storage for this site and try again.');
+      }
+      current = value || null;
+      loaded = true;
+    }
+  };
+})();
+var portalRun = (function () {
+  function runner(success, failure, userObject) {
+    return new Proxy({}, {get: function (_, name) {
+      if (name === 'withSuccessHandler') return function (fn) { return runner(fn, failure, userObject); };
+      if (name === 'withFailureHandler') return function (fn) { return runner(success, fn, userObject); };
+      if (name === 'withUserObject') return function (obj) { return runner(success, failure, obj); };
+      return function () {
+        var args = Array.prototype.slice.call(arguments);
+        var call = google.script.run.withSuccessHandler(function (result) { if (success) success(result, userObject); }).withFailureHandler(function (error) { if (failure) failure(error, userObject); else console.error(error); });
+        if (['localhost','127.0.0.1',''].includes(location.hostname)) call[name].apply(call, args);
+        else call.portalRpc(String(name), args, portalViewContext.get());
+      };
+    }});
+  }
+  return runner(null, null, null);
+})();
+</script>

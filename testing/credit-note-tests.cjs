@@ -1,0 +1,46 @@
+const assert=require('assert'),fs=require('fs'),path=require('path'),vm=require('vm');
+const {createRuntime}=require('./performance-fixtures.cjs');
+const source=path.resolve(__dirname,'../Code.js');
+const r=createRuntime(source,0,{strictInputs:true});
+const form={dept:'Science',supplier:'Synthetic supplier',desc:'Refund',cost:'-13.45',paymentMethod:'Invoice / on account',reportingSite:'Unassigned',invoiceNumber:'CREDIT-1',files:[],clientRequestId:'credit-test-1'};
+const overview=()=>r.api.getOverviewDashboardData({summaryOnly:true,period:'All'}).overview;
+const order=id=>r.api.getDashboardData().orders.find(o=>o.id===id);
+for(const cost of ['0','-0','', '-1.234','-1000000000.01','NaN','Infinity']) {
+  assert.equal(r.api.logInvoice({...form,cost}).saved,false,cost);
+  assert.equal(r.sheets.Orders.rows.length,1);
+}
+assert(r.api.logInvoice(form).saved);
+const id=r.sheets.Orders.rows.at(-1)[0];
+assert.equal(order(id).totalPrice,-13.45);
+assert.equal(order(id).recordType,'Invoice');
+assert.equal(overview().pendingValue,-13.45);
+assert(r.api.logInvoice(form).replayed);
+assert.equal(r.sheets.Orders.rows.length,2);
+assert.equal(r.api.logInvoice({...form,clientRequestId:'duplicate-credit'}).saved,false);
+assert(r.api.processInvoice({id,expectedVersion:order(id).version}).saved);
+assert.equal(order(id).finalPrice,-13.45);
+assert.equal(overview().actualSpend,-13.45);
+assert.equal(overview().pendingValue,0);
+assert.equal(overview().monthly.reduce((n,row)=>n+row[1],0),-13.45);
+assert(r.api.updateInvoice({...form,id,expectedVersion:order(id).version,cost:'-12.45',reason:'Correct supplier credit amount'}).saved);
+assert.equal(overview().actualSpend,-12.45);
+assert(r.api.logInvoice({...form,invoiceNumber:'CREDIT-2',clientRequestId:'credit-test-2',cost:'-2.55'}).saved);
+const id2=r.sheets.Orders.rows.at(-1)[0];
+assert(r.api.bulkFinalizeOrders([{id:id2,quantity:1,finalPrice:-2.55,expectedDate:'',costNote:'',expectedVersion:order(id2).version}]).success);
+assert.equal(overview().actualSpend,-15);
+const ordinary=createRuntime(source,2);
+assert.equal(ordinary.api.updateOrder('PERF-1','','-1','','',null).saved,false);
+assert.equal(ordinary.api.bulkFinalizeOrders([{id:'PERF-1',quantity:1,finalPrice:-1,expectedDate:'',paymentMethod:'Credit card'}]).success,false);
+const html=fs.readFileSync(path.resolve(__dirname,'../Index.html'),'utf8');
+const fields={invDept:'Science',invSupplier:'Synthetic',invDesc:'Refund',invCost:'-13.45',invPaymentMethod:'Invoice / on account',invInvoiceNumber:'CREDIT-1',invReportingSite:'Unassigned'};
+const ctx={document:{getElementById:id=>({value:fields[id]})},getOrderCost_:o=>o.finalPrice!==''&&o.finalPrice!=null?o.finalPrice:o.totalPrice};vm.createContext(ctx);
+vm.runInContext(html.slice(html.indexOf('function isInvoiceOrder('),html.indexOf('function parseOrderMoney(')),ctx);
+vm.runInContext(html.slice(html.indexOf('function validateInvoiceForm()'),html.indexOf('function setInvoiceButtonsSaving')),ctx);
+vm.runInContext(html.slice(html.indexOf('function formatForExcel('),html.indexOf('let simulationTargets_')),ctx);
+assert(ctx.validateInvoiceForm().isValid);
+for(const cost of ['0','-0','','-1.234','-1000000000.01']) {fields.invCost=cost;assert.equal(ctx.validateInvoiceForm().isValid,false,cost);}
+fields.invCost='12.34';assert(ctx.validateInvoiceForm().isValid);
+const exported=ctx.formatForExcel([order(id)])[0];assert.equal(exported.Cost,-12.45);assert.equal(exported['Record Type'],'Credit note');
+assert(!ctx.isCreditNote({recordType:'Transfer',totalPrice:-5}));
+for(const m of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)) if(m[1].trim()) new vm.Script(m[1]);
+console.log('Credit tests passed: signed persistence, zero/range/precision rejection, duplicate/replay, individual/bulk processing, correction, ordinary-order protection, spend/monthly totals, export and form validation; inline script syntax passed.');

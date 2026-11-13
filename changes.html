@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <base target="_top">
+  <!-- Cloudflare Web Analytics -->
+  <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js"
+    data-cf-beacon='{"token":"aa6bbf85d6dd47d9b142a3ce47e1b233"}'></script>
+  <!-- End Cloudflare Web Analytics -->
+  <title>Claremont Order Portal - Recent changes</title>
+  <script>
+    try { if (localStorage.getItem('theme') === 'dark') document.documentElement.dataset.theme = 'dark'; } catch (_) {}
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root { color-scheme:light; --bg:#f5f7fb; --panel:#fff; --text:#202534; --muted:#596579; --line:#dfe3eb; --link:#283583; --marker:#8b9be8; }
+    [data-theme="dark"] { color-scheme:dark; --bg:#09090b; --panel:#141416; --text:#e4e4e7; --muted:#a1a1aa; --line:#2b2b2f; --link:#a6c6ff; --marker:#7385d7; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--text); font:14px/1.6 'Open Sans',sans-serif; }
+    main { max-width:760px; margin:36px auto; padding:0 24px; }
+    nav { display:flex; align-items:center; justify-content:space-between; gap:20px; margin-bottom:30px; }
+    a, button, summary { color:var(--link); }
+    a { text-decoration:none; }
+    a:hover, button:hover { text-decoration:underline; }
+    button { font:inherit; border:0; padding:4px 0; background:transparent; cursor:pointer; }
+    :focus-visible { outline:2px solid var(--link); outline-offset:5px; border-radius:2px; }
+    .brand { color:var(--muted); font-size:11px; letter-spacing:.04em; margin:0 0 5px; text-transform:uppercase; }
+    h1 { font-size:25px; line-height:1.3; margin:0 0 5px; font-weight:600; }
+    .intro { color:var(--muted); margin:0 0 20px; }
+    .list { list-style:none; padding:0; margin:0; }
+    .panel { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:0 20px; }
+    .change-group { position:relative; padding:13px 0 12px 25px; border-bottom:1px solid var(--line); }
+    .change-group:last-child { border-bottom:0; }
+    .change-group::before { content:""; position:absolute; left:5px; top:18px; width:7px; height:7px; border:2px solid var(--marker); border-radius:50%; background:var(--panel); }
+    .change-group::after { content:""; position:absolute; left:8px; top:29px; bottom:-13px; width:1px; background:var(--line); }
+    .change-group:last-child::after { display:none; }
+    .group-date { color:var(--muted); font:600 11px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace; letter-spacing:.04em; text-transform:uppercase; margin-bottom:5px; }
+    .change-items { list-style:none; padding:0; margin:0; }
+    .change-items li { padding:1px 0; }
+    time { color:var(--muted); font-size:12px; padding-top:2px; white-space:nowrap; }
+    details { margin-top:20px; }
+    summary { cursor:pointer; width:fit-content; padding:4px 0; }
+    details .panel { margin-top:14px; }
+    @media(max-width:520px) { main { margin:24px auto; padding:0 16px; } .panel { padding:0 16px; } .change-group { padding-left:22px; } h1 { font-size:23px; } nav { margin-bottom:24px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <nav aria-label="Page navigation">
+      <a href="<?= appUrl ?>">← Back to orders</a>
+      <button type="button" onclick="toggleTheme()" aria-label="Toggle colour theme">Toggle theme</button>
+    </nav>
+    <header>
+      <p class="brand">Claremont School · Purchasing Portal · Release notes</p>
+      <h1>Recent changes</h1>
+      <p class="intro">A short record of portal improvements and fixes.</p>
+    </header>
+    <? function dateLabel(value) { return Utilities.formatDate(new Date(value + 'T12:00:00Z'), 'Europe/London', 'd MMM yyyy'); } ?>
+    <ol class="list panel" aria-label="Latest changes">
+      <? changeGroups.forEach(function(group) { ?>
+        <li class="change-group"><div class="group-date"><?= dateLabel(group.date) ?></div><ul class="change-items">
+          <? group.entries.forEach(function(entry) { ?><li><span><?= entry.text ?></span></li><? }); ?>
+        </ul></li>
+      <? }); ?>
+    </ol>
+    <? if (olderEntries.length) { ?>
+      <details>
+        <summary>Show older changes</summary>
+        <ol class="list panel" start="11" aria-label="Older changes">
+          <? olderEntries.forEach(function(entry) { ?>
+            <li class="change-group"><div class="group-date"><?= dateLabel(entry.date) ?></div><ul class="change-items"><li><span><?= entry.text ?></span></li></ul></li>
+          <? }); ?>
+        </ol>
+      </details>
+    <? } ?>
+  </main>
+  <script>
+    function toggleTheme() {
+      const theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+      document.documentElement.dataset.theme = theme;
+      try { localStorage.setItem('theme', theme); } catch (_) {}
+    }
+  </script>
+</body>
+</html>

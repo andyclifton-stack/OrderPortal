@@ -1,0 +1,89 @@
+<style id="portal-translucent-dropdowns">
+/* Only the popup surface is translucent; labels and selection indicators stay opaque. */
+:root {
+  --dropdown-surface:#fff;
+  --dropdown-text:#202534;
+  --popup-background:color-mix(in srgb,var(--dropdown-surface) 40%,transparent);
+  --dialog-background:var(--dropdown-surface);
+}
+[data-theme="dark"], html.dark {
+  --dropdown-surface:#141416;
+  --dropdown-text:#e4e4e7;
+}
+.dropdown-menu, #settings-menu {
+  background:var(--popup-background) !important;
+  backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+  color:var(--dropdown-text);
+  border:1px solid var(--polish-line); border-radius:8px;
+  box-shadow:0 12px 32px rgba(0,0,0,.2) !important;
+}
+.toast, .popover, .tooltip-inner, .custom-tooltip,
+#overlay #spinner, #overlay.processing-state #spinner, #overlay #errorBox {
+  background:var(--popup-background) !important;
+  backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+  color:var(--dropdown-text) !important;
+  border-color:var(--polish-line) !important;
+}
+.modal .modal-content {
+  background:var(--dialog-background) !important;
+  color:var(--dropdown-text) !important;
+  border-color:var(--polish-line) !important;
+}
+.modal-dialog-scrollable .modal-body { overscroll-behavior:contain; }
+.modal-dialog-scrollable .modal-header, .modal-dialog-scrollable .modal-footer { flex-shrink:0; }
+@media (max-width:575.98px) {
+  .modal-dialog-scrollable .modal-footer { gap:.35rem; padding:.65rem; }
+  .modal-dialog-scrollable .modal-footer > .btn { margin:0; }
+}
+.modal .modal-header, .modal .modal-footer, .toast-header, .popover-header,
+[data-theme="dark"] #approvalModal .modal-header {
+  background:transparent !important;
+  color:var(--dropdown-text) !important;
+}
+.popover-body { color:var(--dropdown-text); }
+/* Recovery instructions must remain readable over the dark loading overlay. */
+#overlay #errorBox { background:var(--dropdown-surface) !important; }
+#overlay #errorDiagnostics { background:var(--polish-soft) !important; color:var(--dropdown-text) !important; }
+.modal .modal-title { color:var(--dropdown-text) !important; }
+.tooltip, .popover { --bs-tooltip-opacity:1; --bs-tooltip-bg:var(--popup-background); --bs-popover-bg:var(--popup-background); }
+.dropdown-menu .dropdown-item, .dropdown-menu .dropdown-header { color:var(--dropdown-text); }
+.dropdown-menu .dropdown-item:hover, .dropdown-menu .dropdown-item:focus {
+  background:var(--polish-soft); color:var(--dropdown-text);
+}
+/* Keep native selects as the fallback in browsers without customizable pickers. */
+@supports (appearance:base-select) {
+  select:not([multiple]):not([size]), select:not([multiple]):not([size])::picker(select) { appearance:base-select; }
+  select:not([multiple]):not([size]) { align-items:center; }
+  /* Bootstrap and dashboard controls already supply a themed chevron. */
+  select.form-select::picker-icon, #dashboardWorkspace select::picker-icon { display:none; }
+  select:not([multiple]):not([size])::picker(select) {
+    background:var(--popup-background);
+    backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+    color:var(--dropdown-text); border:1px solid var(--polish-line);
+    border-radius:8px; padding:5px; margin-block:4px;
+    box-shadow:0 12px 32px rgba(0,0,0,.2);
+    max-height:min(420px,60vh); overflow-y:auto;
+    min-width:anchor-size(width); max-width:calc(100vw - 24px);
+  }
+  select:not([multiple]):not([size]) option {
+    background:transparent; color:var(--dropdown-text);
+    padding:6px 10px; border-radius:4px; white-space:normal;
+  }
+  select:not([multiple]):not([size]) option:checked {
+    background:var(--polish-soft); font-weight:700;
+  }
+  select:not([multiple]):not([size]) option:hover,
+  select:not([multiple]):not([size]) option:focus {
+    background:#283583; color:#fff;
+  }
+  select:not([multiple]):not([size]) option:disabled { color:var(--polish-muted); }
+}
+@media (forced-colors:active) {
+  .modal .modal-content, .toast, .popover, .tooltip-inner, .custom-tooltip,
+  #overlay #spinner, #overlay.processing-state #spinner, #overlay #errorBox {
+    background:Canvas !important; color:CanvasText !important; backdrop-filter:none;
+  }
+  .dropdown-menu, #settings-menu { background:Canvas !important; color:CanvasText; backdrop-filter:none; }
+  select::picker(select) { background:Canvas !important; color:CanvasText; backdrop-filter:none !important; }
+}
+</style>

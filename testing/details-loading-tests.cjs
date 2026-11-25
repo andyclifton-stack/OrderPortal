@@ -56,7 +56,7 @@ const history=t.ctx.formatApprovalHistory_([
  {action:'SIGNOFF_REQUIRED',revision:1},{action:'QUERY_RAISED',revision:1,note:'<private>'},
  {action:'RESUBMITTED',revision:2},{action:'APPROVED',revision:2}
 ]);
-for(const label of ['Independent sign-off requested','Query raised','Resubmitted for sign-off','Approved','&lt;private>']) assert(history.includes(label));
+for(const label of ['Sign-off requested','Query raised','Resubmitted for sign-off','Approved','&lt;private>']) assert(history.includes(label));
 assert(!history.includes('QUERY_RAISED'));
 for (const match of html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)) {if(match[1].trim())new vm.Script(match[1]);}
 console.log('PASS: immediate loading, success, cached opening, close while loading, failure/retry, timeout/late response, version conflict, overlapping requests and script syntax.');

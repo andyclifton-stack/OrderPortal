@@ -1551,7 +1551,7 @@
 
                <div class="tab-pane fade show active" id="tabList">
                    <div id="approvalQueueBar" class="portal-guidance d-none align-items-center flex-wrap gap-2 px-3 py-2">
-                      <span class="fw-semibold me-auto"><i class="bi bi-shield-check me-1" aria-hidden="true"></i>Independent review</span>
+                      <span class="fw-semibold me-auto"><i class="bi bi-shield-check me-1" aria-hidden="true"></i>Purchase review</span>
                       <button class="btn btn-sm btn-outline-primary" type="button" id="approvalQueueMine" onclick="openApprovalQueue('mine')">Needs my review <span class="badge" id="approvalQueueMineCount"></span></button>
                       <button class="btn btn-sm btn-outline-secondary" type="button" id="approvalQueueAwaiting" onclick="openApprovalQueue('awaiting')">My purchases awaiting review <span class="badge" id="approvalQueueAwaitingCount"></span></button>
                       <button class="btn btn-sm btn-outline-secondary" type="button" id="approvalQueueQueries" onclick="openApprovalQueue('queries')">Queries to resolve <span class="badge" id="approvalQueueQueriesCount"></span></button>
@@ -2070,7 +2070,7 @@
             <div class="modal-header bg-warning-subtle">
                <div>
                   <div class="small text-uppercase fw-bold text-muted">Private ordering review</div>
-                  <h5 class="modal-title" id="approvalModalTitle">Independent sign-off</h5>
+                  <h5 class="modal-title" id="approvalModalTitle">Purchase sign-off</h5>
                </div>
                <button type="button" class="btn-close" aria-label="Close" data-bs-dismiss="modal" ></button>
             </div>
@@ -4365,8 +4365,8 @@
          }
 
          const approvalStatus = {
-            AWAITING_SIGNOFF: { className: "text-bg-warning", label: "Sign-off needed", fullLabel: "Awaiting independent sign-off" },
-            APPROVED: { className: "text-bg-success", label: "Approved", fullLabel: "Independently approved" },
+            AWAITING_SIGNOFF: { className: "text-bg-warning", label: "Sign-off needed", fullLabel: "Awaiting sign-off" },
+            APPROVED: { className: "text-bg-success", label: "Approved", fullLabel: "Approved" },
             QUERY_RAISED: { className: "text-bg-danger", label: "Review query", fullLabel: "Review query raised" }
          }[o.approvalStatus];
          if (approvalStatus) {
@@ -5524,7 +5524,9 @@
       function formatApprovalHistory_(history) {
          if (!Array.isArray(history) || !history.length) return '<div>No private review actions have been recorded yet.</div>';
          const labels = {
-            SIGNOFF_REQUIRED:'Independent sign-off requested',
+            SIGNOFF_REQUIRED:'Sign-off requested',
+            QUERY_RESOLVED:'Query resolved',
+            QUERY_RESPONSE:'Response to query',
             QUERY_RAISED:'Query raised',
             RESUBMITTED:'Resubmitted for sign-off',
             APPROVED:'Approved',
@@ -5573,7 +5575,7 @@
          const payment = order.paymentMethod || (!invoice && actual !== '' && actual != null && Number(actual) === 0 ? 'No charge' : 'Not recorded');
          const status = {
             QUERY_RAISED:['text-bg-danger','Review query raised'],
-            AWAITING_SIGNOFF:['text-bg-warning','Awaiting independent sign-off'],
+            AWAITING_SIGNOFF:['text-bg-warning','Awaiting sign-off'],
             APPROVED:['text-bg-success','Approved']
          }[order.approvalStatus] || ['bg-secondary','Review not required'];
          return `
@@ -5618,8 +5620,13 @@
          document.getElementById('approvalFeedback').textContent = '';
          document.getElementById('approvalPrivateNote').closest('.mb-3').hidden = !canAct;
          document.getElementById('approvalOrderSummary').innerHTML = buildApprovalSummary_(order);
-         document.getElementById('approvalApproveButton').style.display = actions.canApprove ? '' : 'none';
-         document.getElementById('approvalQueryButton').style.display = actions.canRaiseQuery ? '' : 'none';
+         const invoiceQuery = order.paymentMethod === 'Invoice / on account' && order.approvalStatus === 'QUERY_RAISED';
+         const decisionButton = document.getElementById('approvalApproveButton');
+         decisionButton.textContent = invoiceQuery ? 'Resolve query' : 'Approve';
+         decisionButton.onclick = () => submitApprovalDecision(invoiceQuery ? 'RESOLVE' : 'APPROVE');
+         decisionButton.style.display = actions.canApprove ? '' : 'none';
+         document.getElementById('approvalResubmitButton').textContent = invoiceQuery ? 'Save response' : 'Resubmit for sign-off';
+         document.getElementById('approvalQueryButton').style.display = actions.canRaiseQuery && !invoiceQuery ? '' : 'none';
          document.getElementById('approvalResubmitButton').style.display = actions.canResubmit ? '' : 'none';
          const evidence = parseOrderAttachmentUrls_(order.attachment);
          document.getElementById('approvalEvidence').innerHTML = '<strong>Purchase evidence</strong><div>' + (evidence.length

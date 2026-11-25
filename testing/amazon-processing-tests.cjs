@@ -68,12 +68,21 @@ actor('staff');
 assert(a.resubmitOrderApproval(onAccountId,'Response to existing query',version(onAccountId)).success);
 assert.equal(a.getOrderApprovalStatus_(row(onAccountId),cols),'QUERY_RAISED');
 actor('admin');
-assert(a.reviewOrderApproval(onAccountId,'APPROVE','Resolved',version(onAccountId)).success);
+assert(!a.reviewOrderApproval(onAccountId,'APPROVE','',version(onAccountId)).success);
+assert(a.reviewOrderApproval(onAccountId,'RESOLVE','Resolved',version(onAccountId)).success);
+assert.equal(row(onAccountId)[cols.approvalStatusIndex],'NOT_REQUIRED');
+assert.equal(row(onAccountId)[cols.approvedByIndex],'');
+assert(r.sheets['Order Approval Audit'].rows.some(entry=>entry.includes(onAccountId) && entry.includes('QUERY_RESOLVED')));
 assert(a.logInvoice(invoice('admin-own')).saved);
 const adminId=r.sheets.Orders.rows.at(-1)[0];
-assert.equal(row(adminId)[cols.approvalStatusIndex],'NOT_REQUIRED');
+assert.equal(row(adminId)[cols.approvalStatusIndex],'AWAITING_SIGNOFF');
 assert(a.processInvoice({id:adminId,expectedVersion:version(adminId)}).saved,'Admin can complete own invoice');
-assert.equal(row(adminId)[cols.approvalStatusIndex],'NOT_REQUIRED');
+assert.equal(row(adminId)[cols.approvalStatusIndex],'AWAITING_SIGNOFF');
+assert(a.reviewOrderApproval(adminId,'APPROVE','Checked card receipt',version(adminId)).success);
+assert.equal(row(adminId)[cols.approvalStatusIndex],'APPROVED');
+assert.equal(row(adminId)[cols.approvedByIndex],'admin@claremontschool.co.uk');
+assert(row(adminId)[cols.approvedAtIndex]);
+assert(r.sheets['Order Approval Audit'].rows.some(entry=>entry.includes(adminId) && entry.includes('APPROVED') && entry.includes('Checked card receipt')));
 assert(row(adminId)[13],'Admin invoice is completed');
 // Legacy Admin purchases with no recorded payment method retain their existing cleanup path.
 row(adminId)[cols.paymentMethodIndex]='';
@@ -100,7 +109,9 @@ for(const bulk of [false,true]){
  assert(a.submitOrder({selectedDept:'Science',supplier:'Admin test',desc:'Admin own request '+bulk,qty:1,unitPrice:10,clientRequestId:'admin-req-'+bulk,files:[]}).saved);
  const adminOrder=r.sheets.Orders.rows.at(-1)[0];
  assert(bulk?a.bulkFinalizeOrders([{id:adminOrder,quantity:1,finalPrice:10,expectedVersion:version(adminOrder),paymentMethod:'Credit card'}]).success:a.updateOrder(adminOrder,'','10','','',null,version(adminOrder),[],false,'Credit card').saved);
- assert.equal(row(adminOrder)[cols.approvalStatusIndex],'NOT_REQUIRED');
+ assert.equal(row(adminOrder)[cols.approvalStatusIndex],'AWAITING_SIGNOFF');
+ assert(a.reviewOrderApproval(adminOrder,'APPROVE','',version(adminOrder)).success);
+ assert.equal(row(adminOrder)[cols.approvalStatusIndex],'APPROVED');
  assert(row(adminOrder)[13]);
 }
 r.sheets.Users.rows[3][8]='Science';

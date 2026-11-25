@@ -155,7 +155,7 @@ function portalRpc(method, args, context) {
 // Newest first. Entries ship with the change; keep older entries for the archive.
 function getRecentChanges_() {
   return [
-    { date: '2026-11-25', text: 'Invoice / on account purchases no longer need routine sign-off. Admins can review credit card purchases across departments. Existing invoice queries stay open for Finance.' },
+    { date: '2026-11-25', text: 'Invoice / on account purchases no longer need routine sign-off. Admins can sign off credit card purchases across departments, including their own. Existing invoice queries stay open for Finance.' },
     { date: '2026-11-13', text: 'Interrupted submissions show a clear check action, including after a reload. Confirmed original entries are cleared; changed entries are kept with confirmation before saving as a new purchase. Clearing or discarding the draft also clears that confirmation. Finance form labels and cost displays on phones are easier to use.' },
     { date: '2026-11-11', text: 'Remove an invoice record with a reason, without finding the original reference. Removed records keep their attachments and audit history in the Removed records view and are excluded from budgets and reports.' },
     { date: '2026-11-10', text: 'Account preview now shows the new request and invoice forms available to the selected user. You can inspect the forms without saving anything.' },
@@ -2649,7 +2649,7 @@ function getOrderRecordActions_(user, row, columns) {
   const requester = normalizeConfigurationKey_(row[3]);
   const processor = columns.processedByIndex >= 0 ? normalizeConfigurationKey_(row[columns.processedByIndex]) : "";
   const canApprove = !isOrderCancelled_(row, columns) && ["Order", "Invoice"].includes(recordType) && canReviewPurchaseDepartment_(user, row[1], recordType) && [APPROVAL_AWAITING_, APPROVAL_QUERY_].includes(status) &&
-    !!user.capabilities.canApproveOrders && actor && ((user.role === ROLE_ADMIN_ && getOrderPaymentMethod_(row, columns) !== 'Credit card') ||
+    !!user.capabilities.canApproveOrders && actor && (user.role === ROLE_ADMIN_ ||
       (actor !== requester && actor !== processor && actor !== normalizeConfigurationKey_(getOrderSubmittedBy_(row, columns)))) &&
     (!user.isSimulated || isDevelopmentRuntime_());
   const actions = {
@@ -4136,23 +4136,25 @@ function buildApprovalRequiredEmailPayloads_(ss, row, columns) {
   const order = extractOrderData_(row, columns);
   return recipients.map(to => ({
     to: to,
-    subject: "Independent sign-off required: " + order.recordType + " " + order.id,
+    subject: "Purchase sign-off required: " + order.recordType + " " + order.id,
     body: formatEmailBody_(
-      "Independent Sign-off Required",
-      `A purchase recorded by <strong>${escapeEmailHtml_(processor)}</strong> requires independent review because they also requested or submitted this purchase.`,
+      "Purchase Sign-off Required",
+      `A purchase recorded by <strong>${escapeEmailHtml_(processor)}</strong> requires sign-off because they also requested or submitted this purchase.`,
       order
     )
   }));
 }
 
 function shouldRequireIndependentSignoff_(user, row, columns) {
-  if (user.role === ROLE_ADMIN_ || isInvoicePayment_(row, columns)) return false;
+  if (isInvoicePayment_(row, columns)) return false;
   const actor = normalizeConfigurationKey_(user.isSimulated && isDevelopmentRuntime_()
     ? user.email
     : (user.realEmail || user.email));
   const requester = normalizeConfigurationKey_(row && row[3]);
   const submitter = normalizeConfigurationKey_(getOrderSubmittedBy_(row, columns));
-  return !!(user.capabilities && (user.capabilities.hasExplicitOrderProcessingPermission || hasProcessingDepartment_(user, row[1])) && actor && (actor === requester || actor === submitter));
+  if (!actor || (actor !== requester && actor !== submitter)) return false;
+  if (user.role === ROLE_ADMIN_) return !!columns && getOrderPaymentMethod_(row, columns) === 'Credit card';
+  return !!(user.capabilities && (user.capabilities.hasExplicitOrderProcessingPermission || hasProcessingDepartment_(user, row[1])));
 }
 
 function getAdminSignoffCleanupCandidates_(ss, rows, columns) {
@@ -4293,7 +4295,7 @@ function originalCardPurchaseNeedsReview_(ss, row, columns) {
   const data = users.getDataRange().getValues();
   const schema = getUserConfigurationSchema_(users, false, data[0]);
   const index = findConfigurationRow_(data, schema.emailIndex, processor);
-  return index < 0 || ![ROLE_ADMIN_, ROLE_WIPRO_].includes(data[index][schema.roleIndex]);
+  return index < 0 || data[index][schema.roleIndex] !== ROLE_WIPRO_;
 }
 
 function resetOrderApprovalAfterMaterialChange_(ss, sheet, rowNumber, row, columns, actorEmail, privateNote, previousRow) {
@@ -4325,7 +4327,7 @@ function reviewOrderApproval(orderId, decision, privateNote, expectedVersion) {
       if (user.isSimulated && !isDevelopmentRuntime_()) return { success: false, error: "Approval decisions cannot be made in simulation mode." };
       const id = validateTextField_(orderId, "Order reference", { required: true, maxLength: 100 });
       const action = (decision || "").toString().trim().toUpperCase();
-      if (!["APPROVE", "QUERY"].includes(action)) return { success: false, error: "Choose Approve or Raise query." };
+      if (!["APPROVE", "QUERY", "RESOLVE"].includes(action)) return { success: false, error: "Choose an available review action." };
       const note = validateTextField_(privateNote, "Private review note", { required: action === "QUERY", maxLength: 1000 });
       const ss = getPortalSpreadsheet_();
       const sheet = ss.getSheetByName("Orders");
@@ -4345,21 +4347,26 @@ function reviewOrderApproval(orderId, decision, privateNote, expectedVersion) {
         const requester = normalizeConfigurationKey_(row[3]);
         const processor = normalizeConfigurationKey_(row[columns.processedByIndex]);
         if (!actor || (user.role !== ROLE_ADMIN_ && (actor === requester || actor === processor || actor === normalizeConfigurationKey_(getOrderSubmittedBy_(row, columns))))) return { success: false, error: "You cannot review your own purchase." };
-        const nextStatus = action === "APPROVE" ? APPROVAL_APPROVED_ : APPROVAL_QUERY_;
+        const invoiceQuery = isInvoicePayment_(row, columns);
+        if (invoiceQuery ? (status !== APPROVAL_QUERY_ || action !== 'RESOLVE') : action === 'RESOLVE') {
+          return { success: false, error: "This action is unavailable for this purchase." };
+        }
+        const nextStatus = invoiceQuery ? APPROVAL_NOT_REQUIRED_ : action === "APPROVE" ? APPROVAL_APPROVED_ : APPROVAL_QUERY_;
+        const outcome = invoiceQuery ? "Review query resolved" : action === "APPROVE" ? "Sign-off approved" : "Review query raised";
         sheet.getRange(i + 1, columns.approvalStatusColumn).setValue(nextStatus);
         sheet.getRange(i + 1, columns.approvedByColumn).setValue(action === "APPROVE" ? actor : "");
         sheet.getRange(i + 1, columns.approvedAtColumn).setValue(action === "APPROVE" ? new Date() : "");
         row[columns.approvalStatusIndex] = nextStatus;
         row[columns.approvedByIndex] = action === "APPROVE" ? actor : "";
         row[columns.approvedAtIndex] = action === "APPROVE" ? new Date() : "";
-        appendOrderApprovalAudit_(ss, row, columns, action === "APPROVE" ? "APPROVED" : "QUERY_RAISED", actor, note);
+        appendOrderApprovalAudit_(ss, row, columns, invoiceQuery ? "QUERY_RESOLVED" : nextStatus, actor, note);
         emailPayloads = [{
           to: getConfig_().financeEmail,
-          subject: `${action === "APPROVE" ? "Sign-off approved" : "Review query raised"}: ${getOrderRecordType_(row, columns.recordTypeIndex)} ${id}`,
-          body: formatEmailBody_(action === "APPROVE" ? "Purchase sign-off approved" : "Purchase review query", `${escapeEmailHtml_(actor)} ${action === "APPROVE" ? "approved the recorded purchase" : "raised a review query"} for ${escapeEmailHtml_(processor)}.${note ? `<br><br><strong>Private review note:</strong> ${escapeEmailHtml_(note)}` : ""}`, extractOrderData_(row, columns))
+          subject: `${outcome}: ${getOrderRecordType_(row, columns.recordTypeIndex)} ${id}`,
+          body: formatEmailBody_(outcome, `${escapeEmailHtml_(actor)} ${invoiceQuery ? "resolved the review query" : action === "APPROVE" ? "approved the recorded purchase" : "raised a review query"} for ${escapeEmailHtml_(processor)}.${note ? `<br><br><strong>Private review note:</strong> ${escapeEmailHtml_(note)}` : ""}`, extractOrderData_(row, columns))
         }];
         markDataChanged_();
-        return { success: true, saved: true, message: action === "APPROVE" ? "Order sign-off approved." : "Review query raised." };
+        return { success: true, saved: true, message: outcome + "." };
       }
       return { success: false, error: "Order not found." };
     }, () => ({ success: false, error: "System busy. Please try again." }));
@@ -4403,10 +4410,10 @@ function resubmitOrderApproval(orderId, privateNote, expectedVersion) {
         sheet.getRange(i + 1, columns.approvalRevisionColumn).setValue(revision);
         row[columns.approvalStatusIndex] = nextStatus;
         row[columns.approvalRevisionIndex] = revision;
-        appendOrderApprovalAudit_(ss, row, columns, "RESUBMITTED", actor, note);
+        appendOrderApprovalAudit_(ss, row, columns, onAccount ? "QUERY_RESPONSE" : "RESUBMITTED", actor, note);
         if (!onAccount) emailPayloads = buildApprovalRequiredEmailPayloads_(ss, row, columns);
         markDataChanged_();
-        return { success: true, saved: true, message: onAccount ? "Response saved. The review query remains open." : "Order resubmitted for independent sign-off." };
+        return { success: true, saved: true, message: onAccount ? "Response saved. The review query remains open." : "Order resubmitted for sign-off." };
       }
       return { success: false, error: "Order not found." };
     }, () => ({ success: false, error: "System busy. Please try again." }));
@@ -5519,7 +5526,7 @@ function logInvoice(form) {
         subject: (cost < 0 ? "New Credit Note Logged: " : "New Invoice Logged: ") + description,
         body: formatEmailBody_(
           cost < 0 ? "New Credit Note Logged" : "New Invoice Logged",
-          `A new ${cost < 0 ? 'credit note' : 'invoice'} has been logged by <strong>${escapeEmailHtml_(user.email)}</strong> and is ready for finance processing.${getOrderApprovalStatus_(savedInvoice.row, savedInvoice.columns) === APPROVAL_AWAITING_ ? ' Independent purchase review is required; the expenditure is already incurred. Portal review does not hold or release an Amazon order.' : ''}`,
+          `A new ${cost < 0 ? 'credit note' : 'invoice'} has been logged by <strong>${escapeEmailHtml_(user.email)}</strong> and is ready for finance processing.${getOrderApprovalStatus_(savedInvoice.row, savedInvoice.columns) === APPROVAL_AWAITING_ ? ' Purchase sign-off is required. The expenditure is already incurred. Portal review does not hold or release an Amazon order.' : ''}`,
           orderObj
         )
       };

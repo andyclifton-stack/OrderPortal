@@ -98,7 +98,7 @@ function row(requester, processorEmail, status, completed) {
 
 assert.strictEqual(api.shouldRequireIndependentSignoff_(processor, row("PERSON@claremontschool.co.uk")), true, "self-processing comparison must be case-insensitive");
 assert.strictEqual(api.shouldRequireIndependentSignoff_(processor, row("someone.else@claremontschool.co.uk")), false);
-assert.strictEqual(api.shouldRequireIndependentSignoff_(admin, row("person@claremontschool.co.uk")), false, "Admin own purchases do not require independent review");
+assert.strictEqual(api.shouldRequireIndependentSignoff_(admin, row("person@claremontschool.co.uk")), false, "Legacy Admin purchases without a payment method keep the existing exemption");
 
 const secondProcessor = user("Staff", {
   email: "reviewer@claremontschool.co.uk",
@@ -117,7 +117,8 @@ for (const type of ['Order', 'Invoice']) {
   purchase[20] = type;
   purchase[29] = 'Credit card';
   assert.equal(api.getOrderRecordActions_(adminReviewer, purchase, columns).canApprove, true);
-  assert.equal(api.getOrderRecordActions_(admin, purchase, columns).canApprove, false);
+  assert.equal(api.getOrderRecordActions_(admin, purchase, columns).canApprove, true);
+  assert.equal(api.shouldRequireIndependentSignoff_(admin, purchase, columns), true);
   assert.equal(api.shouldRequireIndependentSignoff_(processor, purchase, columns), true);
   purchase[29] = 'Invoice / on account';
   assert.equal(api.getOrderRecordActions_(adminReviewer, purchase, columns).canApprove, false);
@@ -148,7 +149,7 @@ assert.ok(server.indexOf("const normalizedItems = []") < server.indexOf("normali
 assert.ok(configuration.includes('id="userCanProcessOrders"'));
 assert.ok(configuration.includes('id="userCanLogInvoices"'));
 assert.ok(portal.includes("ORDERING VIEW:"));
-assert.ok(portal.includes("Awaiting independent sign-off"));
+assert.ok(portal.includes("Awaiting sign-off"));
 assert.ok(portal.includes("function openApprovalReview"));
 assert.ok(portal.includes("function submitApprovalDecision"));
 assert.ok(server.includes("function getApprovalNotificationRecipients_()"));

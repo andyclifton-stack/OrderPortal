@@ -155,6 +155,7 @@ function portalRpc(method, args, context) {
 // Newest first. Entries ship with the change; keep older entries for the archive.
 function getRecentChanges_() {
   return [
+    { date: '2026-11-25', text: 'Invoice / on account purchases no longer need routine sign-off. Admins can review credit card purchases across departments. Existing invoice queries stay open for Finance.' },
     { date: '2026-11-13', text: 'Interrupted submissions show a clear check action, including after a reload. Confirmed original entries are cleared; changed entries are kept with confirmation before saving as a new purchase. Clearing or discarding the draft also clears that confirmation. Finance form labels and cost displays on phones are easier to use.' },
     { date: '2026-11-11', text: 'Remove an invoice record with a reason, without finding the original reference. Removed records keep their attachments and audit history in the Removed records view and are excluded from budgets and reports.' },
     { date: '2026-11-10', text: 'Account preview now shows the new request and invoice forms available to the selected user. You can inspect the forms without saving anything.' },
@@ -2561,9 +2562,15 @@ function getOrderInvoiceNumber_(row, recordType, invoiceNumberIndex) {
   return recordType === "Invoice" ? (row[7] || "") : "";
 }
 
+function isInvoicePayment_(row, columns) {
+  return !!columns && getOrderPaymentMethod_(row, columns) === 'Invoice / on account';
+}
+
 function getOrderApprovalStatus_(row, columns) {
   const index = columns && Number.isInteger(columns.approvalStatusIndex) ? columns.approvalStatusIndex : -1;
   const stored = index >= 0 ? (row[index] || "").toString().trim() : "";
+  // Retain recorded decisions and open queries when removing routine invoice sign-off.
+  if (stored === APPROVAL_AWAITING_ && isInvoicePayment_(row, columns)) return APPROVAL_NOT_REQUIRED_;
   return [APPROVAL_AWAITING_, APPROVAL_APPROVED_, APPROVAL_QUERY_].includes(stored)
     ? stored
     : APPROVAL_NOT_REQUIRED_;
@@ -2642,7 +2649,7 @@ function getOrderRecordActions_(user, row, columns) {
   const requester = normalizeConfigurationKey_(row[3]);
   const processor = columns.processedByIndex >= 0 ? normalizeConfigurationKey_(row[columns.processedByIndex]) : "";
   const canApprove = !isOrderCancelled_(row, columns) && ["Order", "Invoice"].includes(recordType) && canReviewPurchaseDepartment_(user, row[1], recordType) && [APPROVAL_AWAITING_, APPROVAL_QUERY_].includes(status) &&
-    !!user.capabilities.canApproveOrders && actor && (user.role === ROLE_ADMIN_ ||
+    !!user.capabilities.canApproveOrders && actor && ((user.role === ROLE_ADMIN_ && getOrderPaymentMethod_(row, columns) !== 'Credit card') ||
       (actor !== requester && actor !== processor && actor !== normalizeConfigurationKey_(getOrderSubmittedBy_(row, columns)))) &&
     (!user.isSimulated || isDevelopmentRuntime_());
   const actions = {
@@ -4139,7 +4146,7 @@ function buildApprovalRequiredEmailPayloads_(ss, row, columns) {
 }
 
 function shouldRequireIndependentSignoff_(user, row, columns) {
-  if (user.role === ROLE_ADMIN_) return false;
+  if (user.role === ROLE_ADMIN_ || isInvoicePayment_(row, columns)) return false;
   const actor = normalizeConfigurationKey_(user.isSimulated && isDevelopmentRuntime_()
     ? user.email
     : (user.realEmail || user.email));
@@ -4156,7 +4163,7 @@ function getAdminSignoffCleanupCandidates_(ss, rows, columns) {
     .map(r => normalizeConfigurationKey_(r[schema.emailIndex])));
   return rows.slice(1).filter(row => {
     const processor = normalizeConfigurationKey_(row[columns.processedByIndex]);
-    return !isOrderCancelled_(row, columns) &&
+    return !isOrderCancelled_(row, columns) && !isInvoicePayment_(row, columns) && getOrderPaymentMethod_(row, columns) !== 'Credit card' &&
       [APPROVAL_AWAITING_, APPROVAL_QUERY_].includes(getOrderApprovalStatus_(row, columns)) &&
       admins.has(processor) && processor === normalizeConfigurationKey_(row[3]) &&
       processor === normalizeConfigurationKey_(getOrderSubmittedBy_(row, columns));
@@ -4277,11 +4284,25 @@ function appendPurchaseNoteText_(existing, entry) {
   return current + (current && !/[\r\n]$/.test(current) ? '\n' : '') + entry;
 }
 
-function resetOrderApprovalAfterMaterialChange_(ss, sheet, rowNumber, row, columns, actorEmail, privateNote) {
-  const requester = normalizeConfigurationKey_(row[3]);
+function originalCardPurchaseNeedsReview_(ss, row, columns) {
   const processor = normalizeConfigurationKey_(row[columns.processedByIndex]);
-  const submitter = normalizeConfigurationKey_(getOrderSubmittedBy_(row, columns));
-  if (getOrderApprovalStatus_(row, columns) === APPROVAL_NOT_REQUIRED_) return [];
+  if (!processor || (processor !== normalizeConfigurationKey_(row[3]) &&
+      processor !== normalizeConfigurationKey_(getOrderSubmittedBy_(row, columns)))) return false;
+  // Evaluate the original processor, even when a different person corrects the payment method.
+  const users = ss.getSheetByName('Users');
+  const data = users.getDataRange().getValues();
+  const schema = getUserConfigurationSchema_(users, false, data[0]);
+  const index = findConfigurationRow_(data, schema.emailIndex, processor);
+  return index < 0 || ![ROLE_ADMIN_, ROLE_WIPRO_].includes(data[index][schema.roleIndex]);
+}
+
+function resetOrderApprovalAfterMaterialChange_(ss, sheet, rowNumber, row, columns, actorEmail, privateNote, previousRow) {
+  if (isInvoicePayment_(row, columns)) return [];
+  if (getOrderApprovalStatus_(row, columns) === APPROVAL_NOT_REQUIRED_) {
+    const changedToCard = previousRow && getOrderPaymentMethod_(row, columns) === 'Credit card' &&
+      getOrderPaymentMethod_(previousRow, columns) !== 'Credit card';
+    if (!changedToCard || !originalCardPurchaseNeedsReview_(ss, row, columns)) return [];
+  }
   const revision = Number(row[columns.approvalRevisionIndex] || 0) + 1;
   sheet.getRange(rowNumber, columns.approvalStatusColumn).setValue(APPROVAL_AWAITING_);
   sheet.getRange(rowNumber, columns.approvalRevisionColumn).setValue(revision);
@@ -4376,14 +4397,16 @@ function resubmitOrderApproval(orderId, privateNote, expectedVersion) {
         if (!getOrderRecordActions_(user, row, columns).canResubmit) return { success: false, error: "Only an authorised processor or Admin can resubmit this review." };
         if (getOrderApprovalStatus_(row, columns) !== APPROVAL_QUERY_) return { success: false, error: "This order does not have an open review query." };
         const revision = Number(row[columns.approvalRevisionIndex] || 0) + 1;
-        sheet.getRange(i + 1, columns.approvalStatusColumn).setValue(APPROVAL_AWAITING_);
+        const onAccount = isInvoicePayment_(row, columns);
+        const nextStatus = onAccount ? APPROVAL_QUERY_ : APPROVAL_AWAITING_;
+        sheet.getRange(i + 1, columns.approvalStatusColumn).setValue(nextStatus);
         sheet.getRange(i + 1, columns.approvalRevisionColumn).setValue(revision);
-        row[columns.approvalStatusIndex] = APPROVAL_AWAITING_;
+        row[columns.approvalStatusIndex] = nextStatus;
         row[columns.approvalRevisionIndex] = revision;
         appendOrderApprovalAudit_(ss, row, columns, "RESUBMITTED", actor, note);
-        emailPayloads = buildApprovalRequiredEmailPayloads_(ss, row, columns);
+        if (!onAccount) emailPayloads = buildApprovalRequiredEmailPayloads_(ss, row, columns);
         markDataChanged_();
-        return { success: true, saved: true, message: "Order resubmitted for independent sign-off." };
+        return { success: true, saved: true, message: onAccount ? "Response saved. The review query remains open." : "Order resubmitted for independent sign-off." };
       }
       return { success: false, error: "Order not found." };
     }, () => ({ success: false, error: "System busy. Please try again." }));
@@ -5313,6 +5336,7 @@ function voidDuplicateInvoice(form) {
 }
 
 function updateInvoice(form) {
+  let reviewEmails = [];
   const uploadedFileIds = [];
   let saved = false;
   try {
@@ -5374,11 +5398,22 @@ function updateInvoice(form) {
       if (!changes.length) return createWriteSuccess_('No invoice details changed.');
       const actor = user.isSimulated && isDevelopmentRuntime_() ? user.email : (user.realEmail || user.email);
       appendOrderFieldChanges_(ss,id,actor,changes.concat([{field:'Correction reason',oldValue:'',newValue:reason}]));
-      replacements.forEach(item => sheet.getRange(index+1,item.index+1).setValue(item.value));
+      const updated = old.slice();
+      replacements.forEach(item => {
+        sheet.getRange(index+1,item.index+1).setValue(item.value);
+        updated[item.index] = item.value;
+      });
+      if (payment !== getOrderPaymentMethod_(old, columns)) {
+        reviewEmails = resetOrderApprovalAfterMaterialChange_(ss, sheet, index+1, updated, columns, actor, reason, old);
+      }
       markDataChanged_();
       return createWriteSuccess_('Invoice changes saved.');
     });
     saved = !!result.saved;
+    if (saved && reviewEmails.length) {
+      const warning = buildNotificationWarning_(reviewEmails);
+      if (warning) result.warningMessage = warning.message;
+    }
     return result;
   } catch (error) {
     if (isPortalValidationError_(error)) return invoiceWriteFailure_(error);
@@ -5916,9 +5951,9 @@ function updateOrder(id, deliveryDate, finalPrice, message, invoiceNumber, corre
             ]);
             appendOrderFieldChanges_(ss, cleanId, actor, materialChanges.length && invoiceCorrectionReason
               ? materialChanges.concat([{field:'Correction reason',oldValue:'',newValue:invoiceCorrectionReason}]) : materialChanges);
-            if (materialChanges.length && getOrderApprovalStatus_(data[i], orderColumns) !== APPROVAL_NOT_REQUIRED_) {
+            if (materialChanges.length) {
               emailPayloads = emailPayloads.concat(
-                resetOrderApprovalAfterMaterialChange_(ss, sheet, row, updatedRow, orderColumns, actor, cleanMessage)
+                resetOrderApprovalAfterMaterialChange_(ss, sheet, row, updatedRow, orderColumns, actor, cleanMessage, data[i])
               );
             }
           }

@@ -6,9 +6,17 @@ function make(options={}){const r=createRuntime(source,0,{strictInputs:true,...o
 for(const actor of ['admin','staff']){
  const r=make(),a=r.api;r.setActor(actor+'@claremontschool.co.uk');
  const result=a.submitOrder(form);assert(result.saved,JSON.stringify(result));const row=r.sheets.Orders.rows.at(-1),c=a.getOrdersMetadataColumnsForRead_(r.sheets.Orders);
- assert(row[13]);assert(row[14]);assert.equal(row[15],24.5);assert.equal(row[10],20);assert.equal(row[c.paymentMethodIndex],form.paymentMethod);assert.equal(row[c.recordTypeIndex],'Order');assert(row[17].includes('TEST-REF-123'));assert.equal(row[c.processedByIndex],actor+'@claremontschool.co.uk');assert.equal(row[c.approvalStatusIndex],actor==='admin'?'NOT_REQUIRED':'AWAITING_SIGNOFF');
+ assert(row[13]);assert(row[14]);assert.equal(row[15],24.5);assert.equal(row[10],20);assert.equal(row[c.paymentMethodIndex],form.paymentMethod);assert.equal(row[c.recordTypeIndex],'Order');assert(row[17].includes('TEST-REF-123'));assert.equal(row[c.processedByIndex],actor+'@claremontschool.co.uk');assert.equal(row[c.approvalStatusIndex],'NOT_REQUIRED');
  assert(a.submitOrder(form).replayed);assert.equal(r.sheets.Orders.rows.length,2);assert.equal(r.calls.batches,1);
  assert.equal(a.submitOrder({...form,finalCost:'25'}).saved,false);
+}
+{
+ const r=make();
+ r.setActor('staff@claremontschool.co.uk');
+ const result=r.api.submitOrder({...form,paymentMethod:'Credit card'});
+ assert(result.saved,JSON.stringify(result));
+ const row=r.sheets.Orders.rows.at(-1), columns=r.api.getOrdersMetadataColumnsForRead_(r.sheets.Orders);
+ assert.equal(row[columns.approvalStatusIndex],'AWAITING_SIGNOFF');
 }
 for(const change of [{selectedDept:'English'},{selectedDept:'Unknown'},{finalCost:'0'},{finalCost:'-1'},{finalCost:'1.234'},{paymentMethod:''},{deliveryDate:'garbage'},{supplierOrderReference:'x'.repeat(101)}]){
  const r=make();r.setActor('staff@claremontschool.co.uk');let denied=false;try{denied=!r.api.submitOrder({...form,...change}).saved;}catch{denied=true;}assert(denied,JSON.stringify(change));assert.equal(r.sheets.Orders.rows.length,1);

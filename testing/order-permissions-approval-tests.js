@@ -82,7 +82,7 @@ const admin = user("Admin");
 assert.strictEqual(admin.capabilities.canApproveOrders, true);
 assert.strictEqual(admin.capabilities.canManageConfiguration, true);
 
-const columns = { recordTypeIndex: 20, processedByIndex: 22, approvalStatusIndex: 23 };
+const columns = { recordTypeIndex: 20, processedByIndex: 22, approvalStatusIndex: 23, paymentMethodIndex: 29 };
 function row(requester, processorEmail, status, completed) {
   const values = new Array(27).fill("");
   values[0] = "TEST-1";
@@ -111,6 +111,20 @@ assert.strictEqual(api.getOrderRecordActions_(admin, awaiting, columns).canAppro
 assert.strictEqual(api.getOrderRecordActions_(secondProcessor, awaiting, columns).canApprove, true, "another processor may approve");
 const adminReviewer = user("Admin", { email: "admin.reviewer@claremontschool.co.uk", realEmail: "admin.reviewer@claremontschool.co.uk" });
 assert.strictEqual(api.getOrderRecordActions_(adminReviewer, awaiting, columns).canApprove, true, "Admin fallback may approve someone else's purchase");
+
+for (const type of ['Order', 'Invoice']) {
+  const purchase = awaiting.slice();
+  purchase[20] = type;
+  purchase[29] = 'Credit card';
+  assert.equal(api.getOrderRecordActions_(adminReviewer, purchase, columns).canApprove, true);
+  assert.equal(api.getOrderRecordActions_(admin, purchase, columns).canApprove, false);
+  assert.equal(api.shouldRequireIndependentSignoff_(processor, purchase, columns), true);
+  purchase[29] = 'Invoice / on account';
+  assert.equal(api.getOrderRecordActions_(adminReviewer, purchase, columns).canApprove, false);
+  assert.equal(api.shouldRequireIndependentSignoff_(processor, purchase, columns), false);
+  purchase[23] = 'QUERY_RAISED';
+  assert.equal(api.getOrderRecordActions_(adminReviewer, purchase, columns).canApprove, true);
+}
 
 assert.throws(
   () => api.getRequiredDevelopmentProperty_("DEV_SPREADSHEET_ID"),
